@@ -20,77 +20,77 @@ from phase2_influencer.crawlers.influencer_crawler import (
 _TOOLS = [
     {
         "name": "search_influencers",
-        "description": "从各平台搜索符合条件的达人",
+        "description": "Search for influencers matching criteria across platforms",
         "input_schema": {
             "type": "object",
             "properties": {
                 "platforms": {
                     "type": "array",
                     "items": {"type": "string", "enum": ["tiktok", "youtube", "instagram"]},
-                    "description": "要搜索的平台",
+                    "description": "Platforms to search",
                     "default": ["tiktok"]
                 },
-                "keyword":       {"type": "string",  "description": "搜索关键词（商品类目/风格）", "default": ""},
-                "category":      {"type": "string",  "description": "达人类目", "default": ""},
-                "min_followers": {"type": "integer", "description": "最低粉丝数", "default": 10000},
-                "max_followers": {"type": "integer", "description": "最高粉丝数（0=不限）", "default": 0},
-                "limit":         {"type": "integer", "description": "每平台返回数量", "default": 30},
+                "keyword":       {"type": "string",  "description": "Search keyword (product category or style)", "default": ""},
+                "category":      {"type": "string",  "description": "Influencer niche / category", "default": ""},
+                "min_followers": {"type": "integer", "description": "Minimum follower count", "default": 10000},
+                "max_followers": {"type": "integer", "description": "Maximum follower count (0 = no limit)", "default": 0},
+                "limit":         {"type": "integer", "description": "Results per platform", "default": 30},
             },
             "required": []
         }
     },
     {
         "name": "score_and_filter_influencers",
-        "description": "对达人列表进行多维度评分，筛选出高潜力达人",
+        "description": "Score a list of influencers across multiple dimensions and filter high-potential ones",
         "input_schema": {
             "type": "object",
             "properties": {
-                "influencers":      {"type": "array",   "description": "达人列表"},
-                "target_category":  {"type": "string",  "description": "目标商品类目", "default": ""},
-                "top_n":            {"type": "integer", "description": "返回 Top N", "default": 15},
-                "min_score":        {"type": "number",  "description": "最低 AI 评分", "default": 55},
+                "influencers":     {"type": "array",   "description": "List of influencers to score"},
+                "target_category": {"type": "string",  "description": "Target product category", "default": ""},
+                "top_n":           {"type": "integer", "description": "Return Top N results", "default": 15},
+                "min_score":       {"type": "number",  "description": "Minimum AI score threshold", "default": 55},
             },
             "required": ["influencers"]
         }
     },
     {
         "name": "generate_outreach_message",
-        "description": "为指定达人生成个性化招募话术（Email / WhatsApp / DM）",
+        "description": "Generate a personalized outreach message for a given influencer (Email / WhatsApp / DM)",
         "input_schema": {
             "type": "object",
             "properties": {
-                "influencer":    {"type": "object", "description": "达人信息（含评分）"},
-                "product_title": {"type": "string", "description": "推广商品名称"},
-                "product_desc":  {"type": "string", "description": "商品卖点（50字内）", "default": ""},
-                "channel":       {"type": "string", "description": "发送渠道", "enum": ["email", "whatsapp", "dm"], "default": "email"},
-                "commission":    {"type": "string", "description": "佣金方案", "default": ""},
+                "influencer":    {"type": "object", "description": "Influencer data including scores"},
+                "product_title": {"type": "string", "description": "Product name to promote"},
+                "product_desc":  {"type": "string", "description": "Key selling points (max 50 words)", "default": ""},
+                "channel":       {"type": "string", "description": "Delivery channel", "enum": ["email", "whatsapp", "dm"], "default": "email"},
+                "commission":    {"type": "string", "description": "Commission offer", "default": ""},
             },
             "required": ["influencer", "product_title"]
         }
     },
     {
         "name": "send_outreach",
-        "description": "通过 Email 或 WhatsApp 发送招募消息给达人",
+        "description": "Send a recruitment message to an influencer via Email or WhatsApp",
         "input_schema": {
             "type": "object",
             "properties": {
-                "influencer_db_id": {"type": "integer", "description": "数据库中的达人 ID"},
+                "influencer_db_id": {"type": "integer", "description": "Influencer DB record ID"},
                 "channel":          {"type": "string",  "enum": ["email", "whatsapp", "dm"]},
-                "message":          {"type": "string",  "description": "待发送的消息内容"},
-                "recipient":        {"type": "string",  "description": "收件人邮箱或 WhatsApp 号码"},
+                "message":          {"type": "string",  "description": "Message content to send"},
+                "recipient":        {"type": "string",  "description": "Recipient email or WhatsApp number"},
             },
             "required": ["influencer_db_id", "channel", "message", "recipient"]
         }
     },
     {
         "name": "save_influencers",
-        "description": "将评分后的达人保存到数据库",
+        "description": "Persist scored influencers to the database",
         "input_schema": {
             "type": "object",
             "properties": {
                 "influencers": {
                     "type": "array",
-                    "description": "达人列表（含评分），每项需有 influencer_id, platform 等字段",
+                    "description": "List of scored influencers; each must include influencer_id and platform",
                     "items": {"type": "object"}
                 }
             },
@@ -99,19 +99,19 @@ _TOOLS = [
     },
     {
         "name": "get_pipeline_status",
-        "description": "查询当前达人招募管道状态（各阶段数量）",
+        "description": "Query current influencer recruitment pipeline status by stage",
         "input_schema": {
             "type": "object",
             "properties": {
-                "platform": {"type": "string", "description": "平台筛选（空=全部）", "default": ""},
-                "days":     {"type": "integer", "description": "最近 N 天", "default": 7},
+                "platform": {"type": "string", "description": "Platform filter (empty = all)", "default": ""},
+                "days":     {"type": "integer", "description": "Look back N days", "default": 7},
             },
             "required": []
         }
     },
     {
         "name": "get_recommended_products",
-        "description": "从 Phase 1 获取待推广的高分商品，作为达人匹配依据",
+        "description": "Fetch high-scoring products from Phase 1 to use as influencer matching criteria",
         "input_schema": {
             "type": "object",
             "properties": {

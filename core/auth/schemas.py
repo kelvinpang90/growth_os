@@ -9,11 +9,23 @@ class Platform(str, Enum):
     amazon = "amazon"
 
 
+class Language(str, Enum):
+    zh = "zh"
+    en = "en"
+
+
+class Currency(str, Enum):
+    CNY = "CNY"
+    MYR = "MYR"
+
+
 class RegisterRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
     platform: Platform
+    language: Language = Language.en
+    currency: Currency = Currency.MYR
 
 
 class LoginRequest(BaseModel):
@@ -37,4 +49,6 @@ class UserResponse(BaseModel):
     username: str
     email: str
     platform: str
+    language: str
+    currency: str
     created_at: str

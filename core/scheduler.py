@@ -28,18 +28,25 @@ def register_all_jobs() -> None:
         job_check_outreach_replies,
     )
 
+    # ── 公共参数 ──────────────────────────────────────────────────────────
+    # max_instances=1  : 同一任务不允许并发运行，防止重叠执行写入重复数据
+    # misfire_grace_time: 服务重启后，错过执行窗口在此秒数内仍可补跑
+    _common   = {"replace_existing": True, "max_instances": 1}
+    _grace_1h = {**_common, "misfire_grace_time": 3600}   # 爬虫任务：补跑窗口 1 小时
+    _grace_2h = {**_common, "misfire_grace_time": 7200}   # AI 任务：补跑窗口 2 小时
+
     # Phase 1 — 每日抓取（UTC+8）
-    _scheduler.add_job(job_crawl_tiktok_trending,  CronTrigger(hour=2,  minute=0),  id="tiktok_crawl",          replace_existing=True)
-    _scheduler.add_job(job_crawl_amazon_bsr,       CronTrigger(hour=2,  minute=30), id="amazon_crawl",          replace_existing=True)
-    _scheduler.add_job(job_crawl_shopee_trending,  CronTrigger(hour=3,  minute=0),  id="shopee_crawl",          replace_existing=True)
-    _scheduler.add_job(job_crawl_google_trends,    CronTrigger(hour=3,  minute=30), id="google_crawl",          replace_existing=True)
-    _scheduler.add_job(job_ai_discovery_analysis,  CronTrigger(hour=5,  minute=0),  id="ai_analysis",           replace_existing=True)
+    _scheduler.add_job(job_crawl_tiktok_trending,  CronTrigger(hour=2,  minute=0),  id="tiktok_crawl",           **_grace_1h)
+    _scheduler.add_job(job_crawl_amazon_bsr,       CronTrigger(hour=2,  minute=30), id="amazon_crawl",           **_grace_1h)
+    _scheduler.add_job(job_crawl_shopee_trending,  CronTrigger(hour=3,  minute=0),  id="shopee_crawl",           **_grace_1h)
+    _scheduler.add_job(job_crawl_google_trends,    CronTrigger(hour=3,  minute=30), id="google_crawl",           **_grace_1h)
+    _scheduler.add_job(job_ai_discovery_analysis,  CronTrigger(hour=5,  minute=0),  id="ai_analysis",            **_grace_2h)
 
     # Phase 2 — 达人招募（Phase 1 选品完成后执行）
-    _scheduler.add_job(job_crawl_tiktok_influencers, CronTrigger(hour=6,  minute=0),  id="tiktok_influencers",  replace_existing=True)
-    _scheduler.add_job(job_crawl_youtube_channels,   CronTrigger(hour=6,  minute=30), id="youtube_channels",    replace_existing=True)
-    _scheduler.add_job(job_ai_influencer_outreach,   CronTrigger(hour=7,  minute=0),  id="ai_outreach",         replace_existing=True)
-    _scheduler.add_job(job_check_outreach_replies,   CronTrigger(hour=12, minute=0),  id="outreach_reply_check", replace_existing=True)
+    _scheduler.add_job(job_crawl_tiktok_influencers, CronTrigger(hour=6,  minute=0),  id="tiktok_influencers",   **_grace_1h)
+    _scheduler.add_job(job_crawl_youtube_channels,   CronTrigger(hour=6,  minute=30), id="youtube_channels",     **_grace_1h)
+    _scheduler.add_job(job_ai_influencer_outreach,   CronTrigger(hour=7,  minute=0),  id="ai_outreach",          **_grace_2h)
+    _scheduler.add_job(job_check_outreach_replies,   CronTrigger(hour=12, minute=0),  id="outreach_reply_check", **_grace_1h)
 
     logger.info(f"已注册 {len(_scheduler.get_jobs())} 个定时任务")
 

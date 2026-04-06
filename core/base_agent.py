@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 import anthropic
 
 from core.config import settings
@@ -29,6 +31,23 @@ def _load_prompt(name: str) -> str:
     if not match:
         raise ValueError(f"Prompt '{name}' not found in {_PROMPTS_FILE}")
     return match.group(1).strip()
+
+
+# ── Config 加载工具 ───────────────────────────────────────────────────────
+_CONFIG_FILE = Path(__file__).parent.parent / "config" / "platform_config.md"
+
+
+def _load_config(name: str):
+    """从 config/platform_config.md 中读取指定名称块内的 YAML 数据。"""
+    text = _CONFIG_FILE.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"^## " + re.escape(name) + r"\s*\n```yaml\n(.*?)```",
+        re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    if not match:
+        raise ValueError(f"Config '{name}' not found in {_CONFIG_FILE}")
+    return yaml.safe_load(match.group(1))
 
 
 class BaseAgent(ABC):

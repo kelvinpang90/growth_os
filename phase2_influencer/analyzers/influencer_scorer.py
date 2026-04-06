@@ -8,10 +8,10 @@ from typing import Optional
 
 # ── 达人分级定义 ──────────────────────────────────────────────────────────
 INFLUENCER_TIERS = {
-    "kol":   {"min": 1_000_000, "label": "KOL（头部）",    "commission_range": (8, 20)},
-    "mid":   {"min": 100_000,   "label": "腰部达人",       "commission_range": (10, 25)},
-    "koc":   {"min": 10_000,    "label": "KOC（关键意见消费者）", "commission_range": (15, 30)},
-    "nano":  {"min": 0,         "label": "素人达人",        "commission_range": (15, 35)},
+    "kol":  {"min": 1_000_000, "label": "KOL (Top-Tier)",            "commission_range": (8,  20)},
+    "mid":  {"min": 100_000,   "label": "Mid-Tier",                  "commission_range": (10, 25)},
+    "koc":  {"min": 10_000,    "label": "KOC (Key Opinion Consumer)", "commission_range": (15, 30)},
+    "nano": {"min": 0,         "label": "Nano Influencer",            "commission_range": (15, 35)},
 }
 
 # 各平台平均互动率基准（用于相对评分）
@@ -24,21 +24,21 @@ PLATFORM_ER_BENCHMARK = {
 
 @dataclass
 class InfluencerScore:
-    influencer_id:    str
-    platform:         str
-    username:         str
-    tier:             str           # kol / mid / koc / nano
-    tier_label:       str
-    followers:        int
-    er_score:         float         # 互动率评分 0-100
-    gmv_score:        float         # 带货力评分 0-100
-    audience_score:   float         # 粉丝质量评分 0-100
-    activity_score:   float         # 内容活跃度评分 0-100
-    ai_score:         float         # 综合 AI 评分 0-100
-    contact_available: bool         # 是否有联系方式
-    recommended_commission: str     # 建议佣金区间
-    verdict:          str
-    outreach_priority: str          # high / medium / low
+    influencer_id:        str
+    platform:             str
+    username:             str
+    tier:                 str    # kol / mid / koc / nano
+    tier_label:           str
+    followers:            int
+    er_score:             float  # 互动率评分 0-100
+    gmv_score:            float  # 带货力评分 0-100
+    audience_score:       float  # 粉丝质量评分 0-100
+    activity_score:       float  # 内容活跃度评分 0-100
+    ai_score:             float  # 综合 AI 评分 0-100
+    contact_available:    bool
+    recommended_commission: str
+    verdict:              str
+    outreach_priority:    str    # high / medium / low
 
 
 def get_tier(followers: int) -> tuple[str, str]:
@@ -118,7 +118,7 @@ def score_influencer(
 
     # 4. 内容活跃度评分（从 performance 数据推断；无数据时用 er 代理）
     performance = influencer.get("performance", {})
-    videos_30d = int(performance.get("videos_30d", 0))
+    videos_30d  = int(performance.get("videos_30d", 0))
     if videos_30d >= 20:
         activity_score = 95
     elif videos_30d >= 12:
@@ -149,27 +149,24 @@ def score_influencer(
     )
     ai_score = min(100, ai_score)
 
-    # 联系方式
     has_email = bool(influencer.get("contact_email", "").strip())
     has_wa    = bool(influencer.get("contact_wa", "").strip())
     contact_available = has_email or has_wa
 
-    # 建议佣金区间
     comm_range = INFLUENCER_TIERS[tier_key]["commission_range"]
     recommended_commission = f"{comm_range[0]}%–{comm_range[1]}%"
 
-    # 综合结论
     if ai_score >= 80:
-        verdict = "强烈推荐 — 高转化潜力达人"
+        verdict  = "Highly Recommended — High Conversion Potential"
         priority = "high"
     elif ai_score >= 65:
-        verdict = "推荐 — 性价比良好"
+        verdict  = "Recommended — Good ROI"
         priority = "high"
     elif ai_score >= 50:
-        verdict = "一般 — 可纳入观察名单"
+        verdict  = "Neutral — Add to Watch List"
         priority = "medium"
     else:
-        verdict = "不推荐 — 带货数据较弱"
+        verdict  = "Not Recommended — Weak Sales Data"
         priority = "low"
 
     # 无联系方式降低优先级
@@ -211,13 +208,13 @@ def batch_score(
 def generate_outreach_brief(score: InfluencerScore, product_title: str = "") -> str:
     """生成达人招募简报（供 AI 生成话术时使用）"""
     lines = [
-        f"达人：@{score.username}（{score.tier_label}，{score.followers:,} 粉丝）",
-        f"平台：{score.platform.upper()}",
-        f"AI 评分：{score.ai_score} / 100（{score.verdict}）",
-        f"互动率：{score.er_score:.0f}分 | GMV：{score.gmv_score:.0f}分 | 粉丝质量：{score.audience_score:.0f}分",
-        f"建议佣金：{score.recommended_commission}",
-        f"联系方式：{'有' if score.contact_available else '待挖掘'}",
+        f"Influencer: @{score.username} ({score.tier_label}, {score.followers:,} followers)",
+        f"Platform: {score.platform.upper()}",
+        f"AI Score: {score.ai_score} / 100 ({score.verdict})",
+        f"Engagement: {score.er_score:.0f} | GMV: {score.gmv_score:.0f} | Audience Quality: {score.audience_score:.0f}",
+        f"Recommended Commission: {score.recommended_commission}",
+        f"Contact Available: {'Yes' if score.contact_available else 'Needs Research'}",
     ]
     if product_title:
-        lines.append(f"推荐商品：{product_title}")
+        lines.append(f"Target Product: {product_title}")
     return "\n".join(lines)

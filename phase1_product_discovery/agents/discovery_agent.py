@@ -21,17 +21,17 @@ from phase1_product_discovery.crawlers.google_trends_crawler import GoogleTrends
 _TOOLS = [
     {
         "name": "fetch_trending_data",
-        "description": "从各平台抓取当日热销商品和趋势数据",
+        "description": "Fetch today's trending products and data from multiple platforms",
         "input_schema": {
             "type": "object",
             "properties": {
                 "platforms": {
                     "type": "array",
                     "items": {"type": "string", "enum": ["tiktok", "amazon", "shopee", "google"]},
-                    "description": "要抓取的平台列表",
+                    "description": "List of platforms to fetch from",
                     "default": ["tiktok", "amazon", "shopee", "google"]
                 },
-                "category": {"type": "string", "description": "商品类目", "default": ""},
+                "category": {"type": "string", "description": "Product category filter", "default": ""},
                 "limit_per_platform": {"type": "integer", "default": 30}
             },
             "required": []
@@ -39,25 +39,25 @@ _TOOLS = [
     },
     {
         "name": "score_and_filter_products",
-        "description": "对抓取的商品进行多维度评分，筛选出高潜力商品",
+        "description": "Score fetched products across multiple dimensions and filter high-potential ones",
         "input_schema": {
             "type": "object",
             "properties": {
-                "products": {"type": "array", "description": "商品列表"},
-                "top_n": {"type": "integer", "description": "返回 Top N", "default": 10},
-                "min_score": {"type": "number", "description": "最低 AI 评分门槛", "default": 60}
+                "products": {"type": "array", "description": "List of products to score"},
+                "top_n":    {"type": "integer", "description": "Return Top N results", "default": 10},
+                "min_score": {"type": "number", "description": "Minimum AI score threshold", "default": 60}
             },
             "required": ["products"]
         }
     },
     {
         "name": "calculate_profit",
-        "description": "估算某商品在各平台的利润率",
+        "description": "Estimate profit margin for a product on a given platform",
         "input_schema": {
             "type": "object",
             "properties": {
-                "selling_price": {"type": "number", "description": "预计售价（USD）"},
-                "cost_price":    {"type": "number", "description": "采购成本（USD）"},
+                "selling_price": {"type": "number", "description": "Expected selling price (USD)"},
+                "cost_price":    {"type": "number", "description": "Procurement cost (USD)"},
                 "platform":      {"type": "string", "default": "tiktok"},
                 "weight_kg":     {"type": "number", "default": 0.3}
             },
@@ -66,13 +66,13 @@ _TOOLS = [
     },
     {
         "name": "save_recommendations",
-        "description": "将 AI 推荐商品和起盘方案保存到数据库",
+        "description": "Save AI-recommended products and launch plans to the database",
         "input_schema": {
             "type": "object",
             "properties": {
                 "recommendations": {
                     "type": "array",
-                    "description": "推荐商品列表，含完整分析",
+                    "description": "List of recommended products with full analysis",
                     "items": {"type": "object"}
                 }
             },
@@ -81,11 +81,11 @@ _TOOLS = [
     },
     {
         "name": "get_historical_recommendations",
-        "description": "查询历史推荐记录，避免重复推荐",
+        "description": "Query historical recommendation records to avoid duplicates",
         "input_schema": {
             "type": "object",
             "properties": {
-                "days": {"type": "integer", "description": "查询最近 N 天", "default": 7}
+                "days": {"type": "integer", "description": "Look back N days", "default": 7}
             },
             "required": []
         }

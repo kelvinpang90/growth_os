@@ -1,10 +1,15 @@
 """
 Phase 1 — APScheduler 定时任务
 """
+import asyncio
 import time
 
 from core.database import execute
 from core.logger import logger
+
+# AI Agent 任务最长允许运行时间（秒）
+# Claude API 最多 20 轮，每轮约 1–10s，给足裕量
+_AI_TASK_TIMEOUT = 600
 
 
 async def _log_task(name: str, phase: str, status: str, detail: str, ms: int):
@@ -98,10 +103,18 @@ async def job_ai_discovery_analysis():
     try:
         from phase1_product_discovery.agents.discovery_agent import DiscoveryAgent
         agent  = DiscoveryAgent()
-        result = await agent.run_daily_discovery()
-        ms     = int((time.monotonic() - t0) * 1000)
+        result = await asyncio.wait_for(
+            agent.run_daily_discovery(),
+            timeout=_AI_TASK_TIMEOUT,
+        )
+        ms = int((time.monotonic() - t0) * 1000)
         await _log_task("ai_discovery", "phase1", "success", result[:500], ms)
         logger.info(f"[Scheduler] AI 选品分析完成 | {ms}ms")
+    except asyncio.TimeoutError:
+        ms = int((time.monotonic() - t0) * 1000)
+        await _log_task("ai_discovery", "phase1", "failed",
+                        f"任务超时（>{_AI_TASK_TIMEOUT}s）", ms)
+        logger.error(f"[Scheduler] AI 选品分析超时（>{_AI_TASK_TIMEOUT}s），已终止")
     except Exception as e:
         ms = int((time.monotonic() - t0) * 1000)
         await _log_task("ai_discovery", "phase1", "failed", str(e), ms)

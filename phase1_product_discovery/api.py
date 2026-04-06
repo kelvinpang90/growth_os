@@ -7,7 +7,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
 
+from core.base_agent import _load_config
 from core.database import fetchall, fetchone
+from core.i18n import t
 from core.logger import logger
 from phase1_product_discovery.agents.discovery_agent import DiscoveryAgent
 from phase1_product_discovery.analyzers.product_scorer import estimate_profit
@@ -16,16 +18,18 @@ from phase1_product_discovery.crawlers.google_trends_crawler import GoogleTrends
 
 router = APIRouter(prefix="/api/phase1", tags=["Phase1 — 选品发现"])
 
-_VALID_PLATFORMS = {"tiktok", "amazon", "shopee", "google"}
+# ── 从配置文件加载合法平台列表 ─────────────────────────────────────────────
+_VALID_PLATFORMS_DISCOVERY: set = set(_load_config("valid_platforms_discovery"))
+_VALID_PLATFORMS_PROFIT: set    = set(_load_config("valid_platforms_profit_calculator"))
 
 
 @router.post("/run-discovery", summary="立即触发 AI 选品分析")
 async def run_discovery(category: str = "", platforms: str = "tiktok,amazon,shopee,google"):
     agent = DiscoveryAgent()
     task  = (
-        f"请立即执行选品分析，类目：{category or '全类目'}，"
-        f"平台：{platforms}。"
-        "筛选 AI 评分 ≥ 65 的商品，输出 Top 10 推荐 + 起盘方案，保存到数据库。"
+        f"Run product discovery now. Category: {category or 'all'}, "
+        f"platforms: {platforms}. "
+        "Filter products with AI score >= 65, output Top 10 recommendations with launch plans, save to DB."
     )
     result = await agent.run(task, fresh=True)
     return {"status": "ok", "result": result}
@@ -33,14 +37,17 @@ async def run_discovery(category: str = "", platforms: str = "tiktok,amazon,shop
 
 @router.get("/recommendations", summary="获取 AI 推荐商品列表")
 async def get_recommendations(
-    days:      int   = Query(1, ge=1, le=90, description="最近 N 天"),
+    days:      int   = Query(1, ge=1, le=90, description="Look-back window in days"),
     platform:  Optional[str] = Query(None),
     min_score: float = Query(65.0, ge=0, le=100),
     limit:     int   = Query(20, ge=1, le=200),
 ):
     # 平台参数白名单校验，完全杜绝 SQL 注入风险
-    if platform and platform not in _VALID_PLATFORMS:
-        raise HTTPException(status_code=400, detail=f"无效平台，可选: {_VALID_PLATFORMS}")
+    if platform and platform not in _VALID_PLATFORMS_DISCOVERY:
+        raise HTTPException(
+            status_code=400,
+            detail=t("error.invalid_platform", platforms=sorted(_VALID_PLATFORMS_DISCOVERY)),
+        )
 
     params: dict = {"min_score": min_score, "days": days, "limit": limit}
 
@@ -77,8 +84,11 @@ async def get_trending_keywords(
     platform: Optional[str] = Query(None),
     limit:    int = Query(30, ge=1, le=200),
 ):
-    if platform and platform not in _VALID_PLATFORMS:
-        raise HTTPException(status_code=400, detail=f"无效平台，可选: {_VALID_PLATFORMS}")
+    if platform and platform not in _VALID_PLATFORMS_DISCOVERY:
+        raise HTTPException(
+            status_code=400,
+            detail=t("error.invalid_platform", platforms=sorted(_VALID_PLATFORMS_DISCOVERY)),
+        )
 
     params: dict = {"limit": limit}
     if platform:
@@ -104,13 +114,13 @@ async def profit_calculator(
     weight_kg:     float = 0.3,
 ):
     if selling_price <= 0:
-        raise HTTPException(status_code=400, detail="售价必须大于 0")
+        raise HTTPException(status_code=400, detail=t("error.selling_price_positive"))
     if cost_price is not None and cost_price < 0:
-        raise HTTPException(status_code=400, detail="成本价不能为负数")
+        raise HTTPException(status_code=400, detail=t("error.cost_price_negative"))
     if weight_kg < 0:
-        raise HTTPException(status_code=400, detail="重量不能为负数")
-    if platform not in {"tiktok", "shopee", "lazada", "amazon", "shopify"}:
-        raise HTTPException(status_code=400, detail="不支持的平台")
+        raise HTTPException(status_code=400, detail=t("error.weight_negative"))
+    if platform not in _VALID_PLATFORMS_PROFIT:
+        raise HTTPException(status_code=400, detail=t("error.unsupported_platform"))
 
     result = estimate_profit(selling_price, cost_price, platform, weight_kg)
     return asdict(result)
@@ -132,13 +142,13 @@ async def google_trends_live(geo: str = "US", limit: int = Query(20, ge=1, le=10
 
 @router.get("/google-trends/interest", summary="关键词兴趣趋势曲线")
 async def google_trends_interest(
-    keywords: str = Query(..., description="逗号分隔，最多 5 个"),
-    geo:      str = Query("US"),
+    keywords:  str = Query(..., description="Comma-separated, max 5"),
+    geo:       str = Query("US"),
     timeframe: str = Query("today 3-m"),
 ):
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()][:5]
     if not kw_list:
-        raise HTTPException(status_code=400, detail="至少填写 1 个关键词")
+        raise HTTPException(status_code=400, detail=t("error.min_one_keyword"))
     data = await GoogleTrendsCrawler().get_interest_over_time(kw_list, timeframe, geo)
     return {"keywords": kw_list, "data": data}
 

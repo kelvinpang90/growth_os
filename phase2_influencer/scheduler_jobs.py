@@ -1,10 +1,14 @@
 """
 Phase 2 — APScheduler 定时任务
 """
+import asyncio
 import time
 
 from core.database import execute
 from core.logger import logger
+
+# AI Agent 任务最长允许运行时间（秒）
+_AI_TASK_TIMEOUT = 600
 
 
 async def _log_task(name: str, phase: str, status: str, detail: str, ms: int):
@@ -69,10 +73,18 @@ async def job_ai_influencer_outreach():
     try:
         from phase2_influencer.agents.influencer_agent import InfluencerAgent
         agent  = InfluencerAgent()
-        result = await agent.run_daily_outreach()
-        ms     = int((time.monotonic() - t0) * 1000)
+        result = await asyncio.wait_for(
+            agent.run_daily_outreach(),
+            timeout=_AI_TASK_TIMEOUT,
+        )
+        ms = int((time.monotonic() - t0) * 1000)
         await _log_task("ai_influencer_outreach", "phase2", "success", result[:500], ms)
         logger.info(f"[Scheduler] AI 达人招募完成 | {ms}ms")
+    except asyncio.TimeoutError:
+        ms = int((time.monotonic() - t0) * 1000)
+        await _log_task("ai_influencer_outreach", "phase2", "failed",
+                        f"任务超时（>{_AI_TASK_TIMEOUT}s）", ms)
+        logger.error(f"[Scheduler] AI 达人招募超时（>{_AI_TASK_TIMEOUT}s），已终止")
     except Exception as e:
         ms = int((time.monotonic() - t0) * 1000)
         await _log_task("ai_influencer_outreach", "phase2", "failed", str(e), ms)

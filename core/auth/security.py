@@ -18,13 +18,14 @@ def verify_password(plain: str, hashed: str) -> bool:
     return _pwd_context.verify(plain, hashed)
 
 
-def create_access_token(user_id: int, username: str) -> str:
+def create_access_token(user_id: int, username: str, language: str = "en") -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.auth.access_token_expire_minutes
     )
     payload = {
         "sub": str(user_id),
         "username": username,
+        "language": language,
         "exp": expire,
         "type": "access",
     }

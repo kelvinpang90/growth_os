@@ -4,15 +4,10 @@ Phase 1 — 利润率估算 + 商品综合评分模型
 from dataclasses import dataclass
 from typing import Optional
 
+from core.base_agent import _load_config
 
-# ── 平台费率配置 ──────────────────────────────────────────────────────────
-PLATFORM_FEE = {
-    "tiktok":  {"commission": 0.08, "fulfillment": 3.5,  "ads_ratio": 0.15},
-    "shopee":  {"commission": 0.06, "fulfillment": 2.5,  "ads_ratio": 0.12},
-    "lazada":  {"commission": 0.06, "fulfillment": 2.8,  "ads_ratio": 0.12},
-    "amazon":  {"commission": 0.15, "fulfillment": 5.0,  "ads_ratio": 0.20},
-    "shopify": {"commission": 0.02, "fulfillment": 4.0,  "ads_ratio": 0.18},
-}
+# ── 从配置文件加载平台费率 ─────────────────────────────────────────────────
+PLATFORM_FEE: dict = _load_config("platform_fees")
 
 
 @dataclass
@@ -23,8 +18,8 @@ class ProfitResult:
     fulfillment:    float
     ads_cost:       float
     gross_profit:   float
-    profit_rate:    float          # 百分比
-    profit_grade:   str            # A/B/C/D
+    profit_rate:    float   # percentage
+    profit_grade:   str     # A/B/C/D
     recommendation: str
 
 
@@ -41,7 +36,7 @@ def estimate_profit(
     fees = PLATFORM_FEE.get(platform, PLATFORM_FEE["tiktok"])
 
     if cost_price is None:
-        cost_price = selling_price * 0.30        # 默认采购成本 30%
+        cost_price = selling_price * 0.30
 
     platform_fee  = selling_price * fees["commission"]
     fulfillment   = fees["fulfillment"] + weight_kg * 1.5
@@ -51,13 +46,13 @@ def estimate_profit(
     profit_rate   = (gross_profit / selling_price * 100) if selling_price > 0 else 0
 
     if profit_rate >= 40:
-        grade, rec = "A", "利润优秀，强烈推荐"
+        grade, rec = "A", "Excellent margin — highly recommended"
     elif profit_rate >= 25:
-        grade, rec = "B", "利润良好，建议推进"
+        grade, rec = "B", "Good margin — proceed"
     elif profit_rate >= 10:
-        grade, rec = "C", "利润一般，需控成本"
+        grade, rec = "C", "Average margin — optimize costs"
     else:
-        grade, rec = "D", "利润偏低，谨慎选品"
+        grade, rec = "D", "Low margin — select with caution"
 
     return ProfitResult(
         selling_price=round(selling_price, 2),
@@ -75,22 +70,22 @@ def estimate_profit(
 # ── 商品综合评分模型 ──────────────────────────────────────────────────────
 @dataclass
 class ProductScore:
-    product_id:     str
-    platform:       str
-    trend_score:    float          # 趋势热度
-    profit_score:   float          # 利润潜力
-    competition_score: float       # 竞争难度（越低越好）
-    market_score:   float          # 市场容量
-    ai_score:       float          # 综合 AI 评分
-    competition:    str            # low / medium / high
-    market_size:    str            # small / medium / large / huge
-    verdict:        str
+    product_id:        str
+    platform:          str
+    trend_score:       float   # 趋势热度
+    profit_score:      float   # 利润潜力
+    competition_score: float   # 竞争难度（越低越好）
+    market_score:      float   # 市场容量
+    ai_score:          float   # 综合 AI 评分
+    competition:       str     # low / medium / high
+    market_size:       str     # small / medium / large / huge
+    verdict:           str
 
 
 def score_product(product: dict, profit_result: Optional[ProfitResult] = None) -> ProductScore:
     """对单个商品进行多维度打分，输出 AI 综合评分"""
 
-    # 1. 趋势分（已有）
+    # 1. 趋势分
     trend = float(product.get("trend_score", 50))
 
     # 2. 利润分
@@ -132,13 +127,13 @@ def score_product(product: dict, profit_result: Optional[ProfitResult] = None) -
     )
 
     if ai_score >= 80:
-        verdict = "强烈推荐 — 高潜力爆品"
+        verdict = "Highly Recommended — High-Potential Product"
     elif ai_score >= 65:
-        verdict = "推荐 — 有较好机会"
+        verdict = "Recommended — Good Opportunity"
     elif ai_score >= 50:
-        verdict = "一般 — 可继续观察"
+        verdict = "Neutral — Keep Monitoring"
     else:
-        verdict = "不推荐 — 竞争大或利润低"
+        verdict = "Not Recommended — High Competition or Low Margin"
 
     return ProductScore(
         product_id=product.get("product_id", ""),

@@ -264,6 +264,8 @@ _DDL_STATEMENTS = [
         email           VARCHAR(256)    NOT NULL UNIQUE,
         password_hash   VARCHAR(256)    NOT NULL,
         platform        ENUM('tiktok','shopee','amazon') NOT NULL COMMENT '绑定平台（唯一）',
+        language        ENUM('zh','en')  DEFAULT 'en'  COMMENT '界面语言',
+        currency        ENUM('CNY','MYR') DEFAULT 'MYR' COMMENT '货币偏好',
         is_active       TINYINT(1)      DEFAULT 1,
         created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP,
         updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

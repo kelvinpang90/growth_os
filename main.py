@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.database import init_db, close_db
+from core.i18n.middleware import LocaleMiddleware
 from core.scheduler import start_scheduler, stop_scheduler
 from core.logger import logger
 
@@ -43,6 +44,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(LocaleMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
