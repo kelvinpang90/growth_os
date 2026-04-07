@@ -93,7 +93,7 @@ async def refresh(req: RefreshRequest):
     if not record:
         raise HTTPException(status_code=401, detail=t("error.refresh_token_invalid"))
 
-    if record["expires_at"] < datetime.utcnow():
+    if record["expires_at"] < datetime.now():
         await execute(
             "DELETE FROM refresh_tokens WHERE token_hash = :h",
             {"h": token_hash},

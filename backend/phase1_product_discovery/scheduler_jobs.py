@@ -1,8 +1,8 @@
 """
 Phase 1 — APScheduler scheduled jobs
 """
-from core.logger import logger
-from core.scheduler_utils import run_crawl_job, run_ai_job
+from backend.core.logger import logger
+from backend.core.scheduler_utils import run_crawl_job, run_ai_job
 
 
 async def job_crawl_tiktok_trending():

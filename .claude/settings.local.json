@@ -10,7 +10,11 @@
       "Bash(chmod +x /tmp/analyze_chinese.sh)",
       "Bash(/tmp/analyze_chinese.sh)",
       "Bash(chmod +x /tmp/get_chinese_code.sh)",
-      "Bash(/tmp/get_chinese_code.sh)"
+      "Bash(/tmp/get_chinese_code.sh)",
+      "Bash(mkdir -p backend)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(npm create:*)"
     ]
   }
 }

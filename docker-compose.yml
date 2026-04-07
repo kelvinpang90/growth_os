@@ -1,20 +1,32 @@
 version: "3.9"
 
 services:
-  app:
-    build: .
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=mysql+aiomysql://root:growth_os@mysql:3306/growth_os?charset=utf8mb4
       - REDIS_URL=redis://redis:6379/0
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 
   mysql:
