@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="39d83d55-771e-470b-8d8f-029c5761e51f" name="Changes" comment="first commit">
+      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/growth_os.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/growth_os.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/platform_config.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/config/platform_config.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/auth/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/auth/router.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/auth/router.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/auth/schemas.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/auth/schemas.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/auth/security.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/auth/security.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/base_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/base_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/i18n/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/i18n/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/i18n/middleware.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/i18n/middleware.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/redis_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/redis_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/scheduler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/scheduler_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/scheduler_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/tiktok_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/tiktok_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/backend/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/auth/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/docs/architecture.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/function_reference.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/docs/function_reference.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/i18n/en.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/i18n/en.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/i18n/zh.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/i18n/zh.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/migrations/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/migrations/versions/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/agents/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/agents/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/agents/discovery_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/agents/discovery_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/analyzers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/analyzers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/analyzers/product_scorer.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/analyzers/product_scorer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/amazon_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/amazon_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/amazon_shopee_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/amazon_shopee_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/google_trends_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/google_trends_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/shopee_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/shopee_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/crawlers/tiktok_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/crawlers/tiktok_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase1_product_discovery/scheduler_jobs.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase1_product_discovery/scheduler_jobs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/agents/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/agents/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/agents/influencer_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/agents/influencer_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/analyzers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/analyzers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/analyzers/influencer_scorer.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/analyzers/influencer_scorer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/crawlers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/crawlers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/crawlers/influencer_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/crawlers/influencer_crawler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase2_influencer/scheduler_jobs.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase2_influencer/scheduler_jobs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase3_listing/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase3_listing/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase3_listing/agents/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase3_listing/agents/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase3_listing/publishers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase3_listing/publishers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase4_customer_service/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase4_customer_service/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase4_customer_service/agents/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase4_customer_service/agents/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase4_customer_service/handlers/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase4_customer_service/handlers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase5_dashboard/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase5_dashboard/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase5_dashboard/agents/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase5_dashboard/agents/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/phase5_dashboard/metrics/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/phase5_dashboard/metrics/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prompts/prompts.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/prompts/prompts.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/__init__.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="94" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;kelvinpang90&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/kelvinpang90/growth_os.git&quot;,
+    &quot;accountId&quot;: &quot;8bfa1e97-b057-4cb5-8672-10d8263e883e&quot;
+  }
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="3BsZC2oFPTzR1Wey8rjkgcNy86p" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python._auth.executor": "Run",
+    "Python.api.executor": "Debug",
+    "Python.main.executor": "Debug",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "E:/projects/growth_os",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_interpreter_path": "C:/Users/pc/AppData/Roaming/JetBrains/PyCharm2025.3/node/versions/24.14.1/node",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "editor.preferences.fonts.default",
+    "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "E:\\projects\\growth_os\\frontend\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mysql"
+    ]
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.31033.139" />
+        <option value="bundled-python-sdk-2653e85de345-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.31033.139" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="39d83d55-771e-470b-8d8f-029c5761e51f" name="Changes" comment="" />
+      <created>1775279607043</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1775279607043</updated>
+      <workItem from="1775279608087" duration="5009000" />
+      <workItem from="1775309028522" duration="2071000" />
+      <workItem from="1775375177988" duration="2692000" />
+      <workItem from="1775400614826" duration="5119000" />
+      <workItem from="1775441546140" duration="10881000" />
+      <workItem from="1775570228331" duration="807000" />
+      <workItem from="1775572134881" duration="3176000" />
+      <workItem from="1775575346544" duration="1138000" />
+    </task>
+    <task id="LOCAL-00001" summary="first commit">
+      <option name="closed" value="true" />
+      <created>1775445866080</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1775445866080</updated>
+    </task>
+    <task id="LOCAL-00002" summary="first commit">
+      <option name="closed" value="true" />
+      <created>1775464056868</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1775464056868</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="first commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="first commit" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/growth_os$main.coverage" NAME="main Coverage Results" MODIFIED="1775572320569" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/growth_os$_auth.coverage" NAME="_auth Coverage Results" MODIFIED="1775445345658" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.venv/Lib/site-packages/pymysql" />
+    <SUITE FILE_PATH="coverage/growth_os$api.coverage" NAME="api Coverage Results" MODIFIED="1775575873190" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/phase1_product_discovery" />
+  </component>
+</project>
