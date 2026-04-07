@@ -1,7 +1,8 @@
 """
-Agent 基类 — 封装 Claude API 工具调用循环
-所有 Phase Agent 继承此类
+Agent base class — wraps the Claude API tool-use loop
+All Phase Agents inherit from this class
 """
+import asyncio
 import json
 import re
 import time
@@ -21,7 +22,7 @@ _PROMPTS_FILE = Path(__file__).parent.parent / "prompts" / "prompts.md"
 
 
 def _load_prompt(name: str) -> str:
-    """从 prompts/prompts.md 中读取指定名称的 prompt 块。"""
+    # 从 prompts/prompts.md 中读取指定名称的 prompt 块。
     text = _PROMPTS_FILE.read_text(encoding="utf-8")
     pattern = re.compile(
         r"^## " + re.escape(name) + r"\s*\n(.*?)(?=^## |\Z)",
@@ -38,7 +39,7 @@ _CONFIG_FILE = Path(__file__).parent.parent / "config" / "platform_config.md"
 
 
 def _load_config(name: str):
-    """从 config/platform_config.md 中读取指定名称块内的 YAML 数据。"""
+    # 从 config/platform_config.md 中读取指定名称块内的 YAML 数据。
     text = _CONFIG_FILE.read_text(encoding="utf-8")
     pattern = re.compile(
         r"^## " + re.escape(name) + r"\s*\n```yaml\n(.*?)```",
@@ -51,15 +52,7 @@ def _load_config(name: str):
 
 
 class BaseAgent(ABC):
-    """
-    继承示例：
-        class DiscoveryAgent(BaseAgent):
-            @property
-            def system_prompt(self): return "你是选品专家..."
-            @property
-            def tools(self): return [TOOL_A, TOOL_B]
-            async def dispatch_tool(self, name, params): ...
-    """
+    """Abstract base class for all AI agents. Subclasses must implement system_prompt, tools, and dispatch_tool."""
 
     def __init__(self):
         self._client = anthropic.Anthropic(api_key=settings.anthropic.api_key)
@@ -74,15 +67,21 @@ class BaseAgent(ABC):
     @abstractmethod
     def tools(self) -> list[dict]: ...
 
-    @abstractmethod
-    async def dispatch_tool(self, name: str, params: dict) -> Any: ...
+    @property
+    def tool_registry(self) -> dict:
+        # 工具名称到处理方法的映射；子类通过覆盖此属性注册工具，无需重写 dispatch_tool。
+        return {}
+
+    async def dispatch_tool(self, name: str, params: dict) -> Any:
+        # 从 tool_registry 查找工具处理器并调用，支持同步和异步处理器。
+        handler = self.tool_registry.get(name)
+        if handler is None:
+            return {"error": f"Unknown tool: {name}"}
+        return await handler(params) if asyncio.iscoroutinefunction(handler) else handler(params)
 
     # ── 公开接口 ──────────────────────────────────────────────────────────
     async def run(self, user_message: str, fresh: bool = False) -> str:
-        """
-        执行 Agent 循环直到完成。
-        fresh=True 时清空对话历史（适合定时任务）。
-        """
+        # 执行 Claude Agent 工具调用循环直到完成，fresh=True 时清空对话历史（适合定时任务）。
         if fresh:
             self._history = []
 
@@ -137,4 +136,5 @@ class BaseAgent(ABC):
         return final_text
 
     def reset(self) -> None:
+        # 清空对话历史，使 Agent 进入全新状态。
         self._history = []

@@ -1,6 +1,6 @@
 """
-Phase 1 — AI 选品决策 Agent
-输入：多平台抓取数据 → 输出：推荐商品 + 完整起盘方案
+Phase 1 — AI Product Discovery Agent
+Input: multi-platform crawl data → Output: recommended products + launch plans
 """
 import json
 from dataclasses import asdict
@@ -105,21 +105,20 @@ class DiscoveryAgent(BaseAgent):
     def tools(self) -> list[dict]:
         return _TOOLS
 
-    async def dispatch_tool(self, name: str, params: dict):
-        if name == "fetch_trending_data":
-            return await self._fetch_trending(params)
-        elif name == "score_and_filter_products":
-            return self._score_filter(params)
-        elif name == "calculate_profit":
-            return self._calc_profit(params)
-        elif name == "save_recommendations":
-            return await self._save_recs(params)
-        elif name == "get_historical_recommendations":
-            return await self._get_history(params)
-        return {"error": f"未知工具: {name}"}
+    @property
+    def tool_registry(self) -> dict:
+        # 注册 AI 可调用的工具名称到对应处理方法的映射。
+        return {
+            "fetch_trending_data":          self._fetch_trending,
+            "score_and_filter_products":    self._score_filter,
+            "calculate_profit":             self._calc_profit,
+            "save_recommendations":         self._save_recs,
+            "get_historical_recommendations": self._get_history,
+        }
 
     # ── Tool 实现 ──────────────────────────────────────────────────────────
     async def _fetch_trending(self, params: dict) -> dict:
+        # 并发从多个平台抓取今日趋势商品和关键词数据，返回聚合结果。
         platforms = params.get("platforms", ["tiktok", "amazon", "shopee", "google"])
         limit     = params.get("limit_per_platform", 30)
         category  = params.get("category", "")
@@ -161,6 +160,7 @@ class DiscoveryAgent(BaseAgent):
         }
 
     def _score_filter(self, params: dict) -> dict:
+        # 对商品列表进行多维度评分，筛选出 AI 评分达标的高潜力商品。
         products  = params.get("products", [])
         top_n     = params.get("top_n", 10)
         min_score = params.get("min_score", 60)
@@ -187,6 +187,7 @@ class DiscoveryAgent(BaseAgent):
         }
 
     def _calc_profit(self, params: dict) -> dict:
+        # 调用利润估算模型计算单个商品在指定平台的利润率。
         result = estimate_profit(
             selling_price=params["selling_price"],
             cost_price=params.get("cost_price"),
@@ -196,6 +197,7 @@ class DiscoveryAgent(BaseAgent):
         return asdict(result)
 
     async def _save_recs(self, params: dict) -> dict:
+        # 将 AI 推荐商品及完整起盘方案 upsert 到数据库。
         recs   = params.get("recommendations", [])
         saved  = 0
         for rec in recs:
@@ -235,6 +237,7 @@ class DiscoveryAgent(BaseAgent):
         return {"saved": saved, "total": len(recs)}
 
     async def _get_history(self, params: dict) -> dict:
+        # 查询近 N 天已推荐商品历史，用于 AI 去重判断。
         days = params.get("days", 7)
         rows = await fetchall("""
             SELECT product_id, title, platform, ai_score, discovered_at
@@ -246,14 +249,14 @@ class DiscoveryAgent(BaseAgent):
 
     # ── 便捷入口 ──────────────────────────────────────────────────────────
     async def run_daily_discovery(self) -> str:
-        """每日选品任务入口"""
+        # 每日选品定时任务入口，驱动 AI 完成抓取、评分、保存和报告的完整流程。
         logger.info("开始每日 AI 选品分析...")
         return await self.run(
-            "请立即执行今日选品分析：\n"
-            "1. 抓取 TikTok/Amazon/Shopee/Google 今日趋势数据\n"
-            "2. 对所有商品评分，筛选 AI 评分 ≥ 65 的商品\n"
-            "3. 为 Top 10 商品计算利润率并生成完整起盘方案\n"
-            "4. 保存到数据库\n"
-            "5. 输出今日推荐报告",
+            "Please run today's product discovery now:\n"
+            "1. Fetch trending data from TikTok/Amazon/Shopee/Google\n"
+            "2. Score all products, filter those with AI score >= 65\n"
+            "3. Calculate profit margin and generate full launch plan for Top 10 products\n"
+            "4. Save to database\n"
+            "5. Output today's recommendation report",
             fresh=True
         )

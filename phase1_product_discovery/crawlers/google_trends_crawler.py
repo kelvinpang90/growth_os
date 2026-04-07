@@ -1,7 +1,7 @@
 """
-Phase 1 — Google Trends 爬虫
-抓取：实时热搜关键词 / 关键词兴趣趋势曲线
-依赖：pytrends（非官方库，速率限制较严，生产环境建议加 Redis 缓存）
+Phase 1 — Google Trends Crawler
+Fetches: real-time trending keywords / keyword interest curves
+Depends on: pytrends (unofficial library; rate-limited — use Redis cache in production)
 """
 import random
 from datetime import datetime
@@ -13,7 +13,7 @@ from core.logger import logger
 class GoogleTrendsCrawler:
 
     async def get_trending_keywords(self, geo: str = "US", limit: int = 30) -> list[dict]:
-        """获取 Google 当日热搜关键词"""
+        # 获取 Google 指定地区当日实时热搜关键词列表。
         if settings.mock_mode:
             return _mock_trends(limit)
         try:
@@ -41,10 +41,7 @@ class GoogleTrendsCrawler:
         timeframe: str = "today 3-m",
         geo: str = "US",
     ) -> dict:
-        """
-        获取关键词近期搜索兴趣曲线（周粒度，最多 5 个关键词）。
-        返回：{keyword: [weekly_index, ...], ...}  index 范围 0-100
-        """
+        # 获取最多 5 个关键词在指定时间段内的周粒度搜索兴趣曲线（0-100 指数）。
         if not keywords:
             return {}
         if settings.mock_mode:
@@ -63,10 +60,7 @@ class GoogleTrendsCrawler:
             raise
 
     async def get_related_queries(self, keyword: str, geo: str = "US") -> dict:
-        """
-        获取关键词的相关查询词（top + rising）。
-        适合发现长尾词和新兴需求。
-        """
+        # 获取关键词的 top 和 rising 相关查询词，用于发现长尾词和新兴需求。
         if settings.mock_mode:
             return _mock_related_queries(keyword)
         try:
@@ -97,6 +91,7 @@ _MOCK_KEYWORDS = [
 
 
 def _mock_trends(limit: int) -> list[dict]:
+    # 生成模拟的 Google 热搜关键词列表，用于 mock 模式测试。
     return [
         {
             "keyword":     _MOCK_KEYWORDS[i % len(_MOCK_KEYWORDS)],
@@ -111,6 +106,7 @@ def _mock_trends(limit: int) -> list[dict]:
 
 
 def _mock_related_queries(keyword: str) -> dict:
+    # 生成模拟的相关查询词数据。
     return {
         "top": [
             {"query": f"{keyword} review", "value": 100},

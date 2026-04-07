@@ -1,47 +1,30 @@
 """
-Phase 2 — 达人爬虫
-抓取：TikTok 达人数据 / YouTube 频道数据 / Instagram 达人数据
+Phase 2 — Influencer Crawler
+Fetches: TikTok influencer data / YouTube channel data / Instagram influencer data
 """
-import hashlib
-import hmac
-import time
 from datetime import datetime
 
 import httpx
 
-from core.config import settings
 from core.logger import logger
+from core.tiktok_client import TikTokSigner
 
 
 # ══════════════════════════════════════════════════════════════════════════
 # TikTok 达人爬虫
 # ══════════════════════════════════════════════════════════════════════════
 class TikTokInfluencerCrawler:
-    """TikTok 达人搜索 + 数据抓取（TikTok Open API / Creator Marketplace）"""
+    """TikTok influencer search and data crawling (TikTok Open API / Creator Marketplace)."""
 
     BASE = "https://open-api.tiktokglobalshop.com"
     CM_BASE = "https://api.tiktok.com/creator_marketplace/v1"
 
     def __init__(self):
-        self.app_key    = settings.tiktok.app_key
-        self.app_secret = settings.tiktok.app_secret
-        self.token      = settings.tiktok.access_token
-        self.shop_id    = settings.tiktok.shop_id
-
-    def _sign(self, path: str, params: dict) -> dict:
-        ts = str(int(time.time()))
-        p  = {**params, "app_key": self.app_key, "timestamp": ts,
-              "access_token": self.token, "shop_id": self.shop_id}
-        s  = "".join(f"{k}{v}" for k, v in sorted(p.items()))
-        p["sign"] = hmac.new(
-            self.app_secret.encode(),
-            f"{self.app_secret}{path}{s}{self.app_secret}".encode(),
-            hashlib.sha256,
-        ).hexdigest().upper()
-        return p
+        self._signer = TikTokSigner()
 
     async def _get(self, base: str, path: str, params: dict = None) -> dict:
-        signed = self._sign(path, params or {})
+        # 向指定 base URL 发送带签名的 GET 请求并返回 JSON 响应。
+        signed = self._signer.sign(path, params or {})
         async with httpx.AsyncClient(timeout=30) as c:
             r = await c.get(f"{base}{path}", params=signed)
             return r.json()
@@ -54,7 +37,7 @@ class TikTokInfluencerCrawler:
         max_followers: int = 0,
         limit: int = 50,
     ) -> list[dict]:
-        """搜索达人（Creator Marketplace API）"""
+        # 通过 TikTok Creator Marketplace API 按关键词和类目搜索达人。
         if settings.mock_mode:
             return _mock_tiktok_influencers(limit)
         params = {
@@ -74,7 +57,7 @@ class TikTokInfluencerCrawler:
             return _mock_tiktok_influencers(limit)
 
     async def get_influencer_profile(self, creator_id: str) -> dict:
-        """获取达人详细档案（粉丝画像、带货数据）"""
+        # 获取达人详细档案，包括粉丝画像和带货数据。
         if settings.mock_mode:
             return _mock_tiktok_profile(creator_id)
         try:
@@ -85,7 +68,7 @@ class TikTokInfluencerCrawler:
             return _mock_tiktok_profile(creator_id)
 
     async def get_influencer_videos(self, creator_id: str, limit: int = 20) -> list[dict]:
-        """获取达人近期视频（带货表现）"""
+        # 获取达人近期发布视频及其带货表现数据。
         if settings.mock_mode:
             return _mock_influencer_videos(creator_id, limit)
         try:
@@ -98,7 +81,7 @@ class TikTokInfluencerCrawler:
             return _mock_influencer_videos(creator_id, limit)
 
     async def get_gmv_leaderboard(self, category: str = "", limit: int = 30) -> list[dict]:
-        """获取带货 GMV 榜单达人"""
+        # 获取 TikTok 近 30 天带货 GMV 排行榜达人列表。
         if settings.mock_mode:
             return _mock_gmv_leaderboard(limit)
         try:
@@ -118,7 +101,7 @@ class TikTokInfluencerCrawler:
 # YouTube 达人爬虫
 # ══════════════════════════════════════════════════════════════════════════
 class YouTubeCrawler:
-    """YouTube Data API v3 — 频道搜索 + 数据抓取"""
+    """YouTube Data API v3 — channel search and data crawling."""
 
     BASE = "https://www.googleapis.com/youtube/v3"
 
@@ -131,7 +114,7 @@ class YouTubeCrawler:
         min_subscribers: int = 10000,
         limit: int = 30,
     ) -> list[dict]:
-        """按关键词搜索 YouTube 频道"""
+        # 通过 YouTube Data API 按关键词搜索频道，过滤最低订阅量。
         if settings.mock_mode:
             return _mock_youtube_channels(limit)
         try:
@@ -163,7 +146,7 @@ class YouTubeCrawler:
             return _mock_youtube_channels(limit)
 
     async def get_channel_videos(self, channel_id: str, limit: int = 10) -> list[dict]:
-        """获取频道近期视频"""
+        # 获取 YouTube 频道的近期视频列表。
         if settings.mock_mode:
             return _mock_influencer_videos(channel_id, limit)
         try:
@@ -186,7 +169,7 @@ class YouTubeCrawler:
 # Instagram 达人爬虫
 # ══════════════════════════════════════════════════════════════════════════
 class InstagramCrawler:
-    """Instagram Graph API — 达人数据（需要 Business/Creator 账号授权）"""
+    """Instagram Graph API — influencer data (requires Business/Creator account authorization)."""
 
     BASE = "https://graph.facebook.com/v19.0"
 
@@ -194,7 +177,7 @@ class InstagramCrawler:
         self.access_token = getattr(settings, "instagram_token", "")
 
     async def get_influencer_insights(self, ig_user_id: str) -> dict:
-        """获取 IG 达人洞察数据（仅限已授权账号）"""
+        # 获取 Instagram 达人的洞察数据，仅限已授权的 Business/Creator 账号。
         if settings.mock_mode:
             return _mock_instagram_profile(ig_user_id)
         try:
@@ -218,7 +201,7 @@ class InstagramCrawler:
             return _mock_instagram_profile(ig_user_id)
 
     async def search_hashtag_creators(self, hashtag: str, limit: int = 20) -> list[dict]:
-        """通过话题标签发现潜力达人"""
+        # 通过 Instagram 话题标签搜索近期发帖的潜力达人。
         if settings.mock_mode:
             return _mock_instagram_creators(limit)
         try:
@@ -247,6 +230,7 @@ class InstagramCrawler:
 # 数据标准化
 # ══════════════════════════════════════════════════════════════════════════
 def _normalize_tiktok_influencer(data: dict) -> dict:
+    # 将 TikTok API 返回的达人字段标准化为内部统一格式。
     import random
     followers = data.get("follower_count", data.get("followers", 0))
     avg_views = data.get("avg_views", int(followers * random.uniform(0.05, 0.3)))
@@ -270,6 +254,7 @@ def _normalize_tiktok_influencer(data: dict) -> dict:
 
 
 def _normalize_tiktok_profile(data: dict) -> dict:
+    # 在基础达人信息之上补充粉丝画像和近期内容表现数据。
     base = _normalize_tiktok_influencer(data)
     base["audience_data"] = {
         "age_18_24":    data.get("audience_age_18_24", 0),
@@ -287,6 +272,7 @@ def _normalize_tiktok_profile(data: dict) -> dict:
 
 
 def _normalize_youtube_channel(data: dict) -> dict:
+    # 将 YouTube Data API 返回的频道数据标准化为内部统一格式。
     stats = data.get("statistics", {})
     snippet = data.get("snippet", {})
     subs = int(stats.get("subscriberCount", 0))
@@ -311,6 +297,7 @@ def _normalize_youtube_channel(data: dict) -> dict:
 
 
 def _normalize_instagram(profile: dict, insights: list) -> dict:
+    # 将 Instagram Graph API 返回的达人资料和洞察数据标准化为内部格式。
     followers = profile.get("followers_count", 0)
     reach = next((i["values"][0]["value"] for i in insights if i.get("name") == "reach"), 0)
     return {
@@ -335,6 +322,7 @@ def _normalize_instagram(profile: dict, insights: list) -> dict:
 # Mock 数据
 # ══════════════════════════════════════════════════════════════════════════
 def _mock_tiktok_influencers(limit: int) -> list[dict]:
+    # 生成按层级分布的模拟 TikTok 达人数据，用于 mock 模式测试。
     import random
     tiers = [
         ("kol",  1000000, 5000000,  50000,  200000, 3.0),
@@ -359,7 +347,7 @@ def _mock_tiktok_influencers(limit: int) -> list[dict]:
             "avg_engagement": round(base_er + random.uniform(-1, 2), 2),
             "gmv_30d":        round(random.uniform(500, 80000), 2),
             "category":       cat,
-            "content_style":  random.choice(["教程/测评", "开箱种草", "日常vlog", "剧情带货"]),
+            "content_style":  random.choice(["Tutorial/Review", "Unboxing/Haul", "Daily Vlog", "Story-driven"]),
             "commission_rate": round(random.uniform(5, 25), 1),
             "contact_email":  f"creator{i+1}@email.com" if random.random() > 0.4 else "",
             "contact_wa":     f"+1555{random.randint(1000000,9999999)}" if random.random() > 0.5 else "",
@@ -377,6 +365,7 @@ def _mock_tiktok_influencers(limit: int) -> list[dict]:
 
 
 def _mock_tiktok_profile(creator_id: str) -> dict:
+    # 生成模拟的单个 TikTok 达人详细档案数据。
     import random
     followers = random.randint(50000, 2000000)
     return {
@@ -389,7 +378,7 @@ def _mock_tiktok_profile(creator_id: str) -> dict:
         "avg_engagement": round(random.uniform(2, 10), 2),
         "gmv_30d":        round(random.uniform(1000, 50000), 2),
         "category":       "Beauty",
-        "content_style":  "教程/测评",
+        "content_style":  "Tutorial/Review",
         "commission_rate": round(random.uniform(8, 20), 1),
         "contact_email":  f"creator@email.com",
         "contact_wa":     "",
@@ -408,6 +397,7 @@ def _mock_tiktok_profile(creator_id: str) -> dict:
 
 
 def _mock_influencer_videos(creator_id: str, limit: int) -> list[dict]:
+    # 生成模拟的达人近期视频列表数据。
     import random
     return [{
         "video_id":    f"VID_{creator_id[-4:]}_{i:03d}",
@@ -422,6 +412,7 @@ def _mock_influencer_videos(creator_id: str, limit: int) -> list[dict]:
 
 
 def _mock_gmv_leaderboard(limit: int) -> list[dict]:
+    # 生成模拟的 GMV 带货榜单数据，榜单达人的 GMV 比普通搜索结果更高。
     import random
     influencers = _mock_tiktok_influencers(limit)
     # 榜单上的达人 GMV 更高
@@ -432,6 +423,7 @@ def _mock_gmv_leaderboard(limit: int) -> list[dict]:
 
 
 def _mock_youtube_channels(limit: int) -> list[dict]:
+    # 生成模拟的 YouTube 频道列表数据，用于 mock 模式测试。
     import random
     topics = ["beauty tutorial", "tech review", "fitness", "cooking", "lifestyle vlog"]
     return [{
@@ -444,7 +436,7 @@ def _mock_youtube_channels(limit: int) -> list[dict]:
         "avg_engagement": round(random.uniform(2, 8), 2),
         "gmv_30d":       0,
         "category":      random.choice(topics),
-        "content_style": "视频测评",
+        "content_style": "Video Review",
         "contact_email": f"yt_creator{i+1}@gmail.com" if random.random() > 0.4 else "",
         "contact_wa":    "",
         "audience_data": {},
@@ -453,6 +445,7 @@ def _mock_youtube_channels(limit: int) -> list[dict]:
 
 
 def _mock_instagram_profile(ig_user_id: str) -> dict:
+    # 生成模拟的单个 Instagram 达人档案数据。
     import random
     followers = random.randint(20000, 1000000)
     return {
@@ -465,7 +458,7 @@ def _mock_instagram_profile(ig_user_id: str) -> dict:
         "avg_engagement": round(random.uniform(2, 8), 2),
         "gmv_30d":       0,
         "category":      "Lifestyle",
-        "content_style": "图文种草",
+        "content_style": "Photo/Recommendation",
         "contact_email": "",
         "contact_wa":    "",
         "audience_data": {},
@@ -474,4 +467,5 @@ def _mock_instagram_profile(ig_user_id: str) -> dict:
 
 
 def _mock_instagram_creators(limit: int) -> list[dict]:
+    # 批量生成模拟的 Instagram 达人列表数据。
     return [_mock_instagram_profile(f"IG_{i+1:05d}") for i in range(min(limit, 10))]

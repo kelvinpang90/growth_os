@@ -1,5 +1,5 @@
 """
-全局配置 — 从环境变量读取，支持 .env 文件
+Global configuration — reads from environment variables, supports .env file
 """
 import os
 from dataclasses import dataclass, field
@@ -9,6 +9,7 @@ load_dotenv()
 
 
 def _env(key: str, default: str = "") -> str:
+    # 读取环境变量，不存在时返回 default。
     return os.getenv(key, default)
 
 

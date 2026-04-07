@@ -1,7 +1,7 @@
 """
-Phase 1 — Shopee 爬虫
-抓取：热销商品列表
-依赖：Shopee Open Platform API v2（HMAC-SHA256 签名）
+Phase 1 — Shopee Crawler
+Fetches: trending product list
+Depends on: Shopee Open Platform API v2 (HMAC-SHA256 signing)
 """
 import hashlib
 import hmac
@@ -19,7 +19,7 @@ class ShopeeCrawler:
     BASE = "https://partner.shopeemobile.com/api/v2"
 
     async def get_trending_products(self, limit: int = 50) -> list[dict]:
-        """抓取 Shopee 热销商品"""
+        # 通过 Shopee Open Platform API 抓取热销商品列表，使用 HMAC-SHA256 签名。
         if settings.mock_mode:
             return _mock_shopee_products(limit)
         try:
@@ -55,7 +55,7 @@ class ShopeeCrawler:
             raise
 
     async def get_item_detail(self, item_id: int, shop_id: int) -> dict:
-        """获取单个商品详情"""
+        # 获取单个 Shopee 商品的详细信息。
         if settings.mock_mode:
             return {}
         try:
@@ -88,6 +88,7 @@ class ShopeeCrawler:
 
 # ── 数据标准化 ────────────────────────────────────────────────────────────
 def _normalize_shopee(item: dict) -> dict:
+    # 将 Shopee API 返回的商品字段标准化为内部统一格式（价格单位转换为 USD）。
     return {
         "product_id":   str(item.get("item_id", "")),
         "title":        item.get("item_name", ""),
@@ -106,6 +107,7 @@ def _normalize_shopee(item: dict) -> dict:
 
 # ── Mock 数据 ─────────────────────────────────────────────────────────────
 def _mock_shopee_products(limit: int) -> list[dict]:
+    # 生成模拟的 Shopee 热销商品数据，用于 mock 模式测试。
     cats = ["Health", "Beauty", "Home Living", "Women Clothes", "Men Clothes", "Electronics"]
     return [{
         "product_id":   f"SPE_{i+1:05d}",

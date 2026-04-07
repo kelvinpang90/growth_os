@@ -1,5 +1,5 @@
 """
-Locale 中间件 — 从 JWT 或 Accept-Language 头自动设置当前请求的语言环境
+Locale middleware — automatically sets the request locale from JWT or Accept-Language header
 """
 import jwt
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -10,6 +10,7 @@ from core.i18n import set_locale
 
 class LocaleMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
+        # 从 JWT payload 或 Accept-Language 头自动解析并设置当前请求的语言环境。
         locale = None
 
         # 1. 优先从 JWT payload 读取用户保存的语言偏好

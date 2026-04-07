@@ -1,6 +1,6 @@
 """
-Phase 2 — AI 达人招募决策 Agent
-输入：目标商品 + 类目 → 输出：推荐达人列表 + 个性化招募话术 + 发送记录
+Phase 2 — AI Influencer Outreach Agent
+Input: target products + category → Output: recommended influencers + personalized messages + send records
 """
 import json
 from dataclasses import asdict
@@ -136,25 +136,22 @@ class InfluencerAgent(BaseAgent):
     def tools(self) -> list[dict]:
         return _TOOLS
 
-    async def dispatch_tool(self, name: str, params: dict):
-        if name == "search_influencers":
-            return await self._search_influencers(params)
-        elif name == "score_and_filter_influencers":
-            return self._score_filter(params)
-        elif name == "generate_outreach_message":
-            return self._generate_message(params)
-        elif name == "send_outreach":
-            return await self._send_outreach(params)
-        elif name == "save_influencers":
-            return await self._save_influencers(params)
-        elif name == "get_pipeline_status":
-            return await self._get_pipeline(params)
-        elif name == "get_recommended_products":
-            return await self._get_products(params)
-        return {"error": f"未知工具: {name}"}
+    @property
+    def tool_registry(self) -> dict:
+        # 注册 AI 可调用的工具名称到对应处理方法的映射。
+        return {
+            "search_influencers":           self._search_influencers,
+            "score_and_filter_influencers": self._score_filter,
+            "generate_outreach_message":    self._generate_message,
+            "send_outreach":                self._send_outreach,
+            "save_influencers":             self._save_influencers,
+            "get_pipeline_status":          self._get_pipeline,
+            "get_recommended_products":     self._get_products,
+        }
 
     # ── Tool 实现 ──────────────────────────────────────────────────────────
     async def _search_influencers(self, params: dict) -> dict:
+        # 跨平台搜索达人，合并去重后返回候选列表。
         platforms    = params.get("platforms", ["tiktok"])
         keyword      = params.get("keyword", "")
         category     = params.get("category", "")
@@ -207,6 +204,7 @@ class InfluencerAgent(BaseAgent):
         }
 
     def _score_filter(self, params: dict) -> dict:
+        # 对达人列表进行多维度评分，筛选出 AI 评分达标的高优先级达人。
         influencers     = params.get("influencers", [])
         target_category = params.get("target_category", "")
         top_n           = params.get("top_n", 15)
@@ -245,6 +243,7 @@ class InfluencerAgent(BaseAgent):
         }
 
     def _generate_message(self, params: dict) -> dict:
+        # 根据达人信息和商品生成个性化招募话术（邮件/WhatsApp/DM）。
         influencer    = params.get("influencer", {})
         product_title = params.get("product_title", "")
         product_desc  = params.get("product_desc", "")
@@ -253,7 +252,7 @@ class InfluencerAgent(BaseAgent):
 
         username     = influencer.get("username", "Creator")
         platform     = influencer.get("platform", "TikTok").upper()
-        tier_label   = influencer.get("tier_label", "达人")
+        tier_label   = influencer.get("tier_label", "Influencer")
         followers    = influencer.get("followers", 0)
         ai_score     = influencer.get("ai_score", 0)
 
@@ -290,13 +289,14 @@ class InfluencerAgent(BaseAgent):
         }
 
     async def _send_outreach(self, params: dict) -> dict:
+        # 通过指定渠道向达人发送招募消息，并将发送记录写入数据库。
         influencer_db_id = params["influencer_db_id"]
         channel   = params["channel"]
         message   = params["message"]
         recipient = params["recipient"]
 
         if not recipient:
-            return {"success": False, "reason": "无有效联系方式"}
+            return {"success": False, "reason": "No valid contact information"}
 
         sent = False
         error_msg = ""
@@ -309,7 +309,7 @@ class InfluencerAgent(BaseAgent):
             else:
                 # DM 渠道：记录待发状态，人工跟进
                 sent = False
-                error_msg = "DM 渠道需人工发送"
+                error_msg = "DM channel requires manual sending"
         except Exception as e:
             error_msg = str(e)
             logger.error(f"发送招募消息失败 ({channel} → {recipient}): {e}")
@@ -342,10 +342,11 @@ class InfluencerAgent(BaseAgent):
             "success":   sent,
             "channel":   channel,
             "recipient": recipient,
-            "reason":    error_msg if not sent else "发送成功",
+            "reason":    error_msg if not sent else "Sent successfully",
         }
 
     async def _save_influencers(self, params: dict) -> dict:
+        # 将达人评分数据 upsert 到数据库，返回保存数量和 ID 映射。
         influencers = params.get("influencers", [])
         saved = 0
         id_map = {}  # influencer_id -> db id
@@ -401,6 +402,7 @@ class InfluencerAgent(BaseAgent):
         return {"saved": saved, "total": len(influencers), "id_map": id_map}
 
     async def _get_pipeline(self, params: dict) -> dict:
+        # 查询达人招募各阶段的数量统计及最近高分达人列表。
         platform_clause = ""
         query_params: dict = {"days": params.get("days", 7)}
 
@@ -443,6 +445,7 @@ class InfluencerAgent(BaseAgent):
         }
 
     async def _get_products(self, params: dict) -> dict:
+        # 从 Phase 1 数据库获取近期高分推荐商品，用于达人匹配。
         rows = await fetchall("""
             SELECT product_id, platform, title, category, price,
                    sales_volume, trend_score, profit_rate, ai_score, ai_analysis
@@ -459,17 +462,17 @@ class InfluencerAgent(BaseAgent):
 
     # ── 便捷入口 ──────────────────────────────────────────────────────────
     async def run_daily_outreach(self) -> str:
-        """每日达人招募任务入口"""
+        # 每日达人招募定时任务入口，驱动 AI 完成搜索、评分、保存、发消息和报告的完整流程。
         logger.info("开始每日 AI 达人招募分析...")
         return await self.run(
-            "请立即执行今日达人招募任务：\n"
-            "1. 从 Phase 1 获取今日高分推荐商品\n"
-            "2. 在 TikTok 搜索匹配达人（同时搜索 GMV 榜单）\n"
-            "3. 评分筛选，保留 AI 评分 ≥ 55 的达人\n"
-            "4. 将所有达人保存到数据库\n"
-            "5. 为 Top 10 高优先级达人生成个性化招募话术\n"
-            "6. 自动发送（有联系方式的达人）\n"
-            "7. 输出今日达人招募报告",
+            "Please run today's influencer outreach now:\n"
+            "1. Get today's high-scoring recommended products from Phase 1\n"
+            "2. Search matching influencers on TikTok (also search GMV leaderboard)\n"
+            "3. Score and filter, keep influencers with AI score >= 55\n"
+            "4. Save all influencers to the database\n"
+            "5. Generate personalized outreach messages for Top 10 high-priority influencers\n"
+            "6. Auto-send to influencers that have contact information\n"
+            "7. Output today's influencer outreach report",
             fresh=True
         )
 
@@ -482,7 +485,8 @@ def _email_template(
     commission: str,
     platform: str,
 ) -> str:
-    desc_line = f"\n商品亮点：{desc}" if desc else ""
+    # 使用 prompts.md 中的模板生成完整招募邮件正文。
+    desc_line = f"\nProduct Highlights: {desc}" if desc else ""
     return _load_prompt("email_template").format(
         username=username,
         product=product,
@@ -493,6 +497,7 @@ def _email_template(
 
 
 def _whatsapp_template(username: str, product: str, commission: str) -> str:
+    # 使用 prompts.md 中的模板生成 WhatsApp 招募消息。
     return _load_prompt("whatsapp_template").format(
         username=username,
         product=product,
@@ -501,6 +506,7 @@ def _whatsapp_template(username: str, product: str, commission: str) -> str:
 
 
 def _dm_template(username: str, product: str, commission: str, platform: str) -> str:
+    # 使用 prompts.md 中的模板生成平台私信招募消息。
     return _load_prompt("dm_template").format(
         username=username,
         product=product,
@@ -511,7 +517,7 @@ def _dm_template(username: str, product: str, commission: str, platform: str) ->
 
 # ── 发送通道 ──────────────────────────────────────────────────────────────
 async def _send_email(to: str, body: str) -> bool:
-    """通过 SMTP 发送邮件"""
+    # 通过 SMTP 发送招募邮件，成功返回 True，失败返回 False。
     from core.config import settings as cfg
     try:
         import smtplib
@@ -531,7 +537,7 @@ async def _send_email(to: str, body: str) -> bool:
 
 
 async def _send_whatsapp(to: str, message: str) -> bool:
-    """通过 WhatsApp Business API 发送消息"""
+    # 通过 WhatsApp Business API 向指定号码发送文本消息。
     from core.config import settings as cfg
     import httpx
     try:
@@ -559,7 +565,7 @@ async def _send_whatsapp(to: str, message: str) -> bool:
 
 
 def _parse_commission(commission_str: str) -> float:
-    """从 '15%–25%' 格式解析出中间值"""
+    # 从 '15%–25%' 格式的佣金字符串中解析出中间值（取平均）。
     try:
         nums = [float(x.strip().rstrip("%")) for x in commission_str.replace("–", "-").split("-") if x.strip().rstrip("%")]
         return sum(nums) / len(nums) if nums else 0

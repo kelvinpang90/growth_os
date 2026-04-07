@@ -1,5 +1,5 @@
 """
-Auth 路由 — 注册 / 登录 / 刷新 Token / 获取当前用户
+Auth Router — register / login / refresh token / get current user
 """
 from datetime import datetime, timedelta
 
@@ -26,15 +26,16 @@ from core.auth.security import (
     verify_password,
 )
 
-router = APIRouter(prefix="/api/auth", tags=["Auth — 用户认证"])
+router = APIRouter(prefix="/api/auth", tags=["Auth — User Authentication"])
 _bearer = HTTPBearer()
 
 
 # ── 公开接口 ──────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED,
-             summary="用户注册")
+             summary="Register")
 async def register(req: RegisterRequest):
+    # 创建新用户账号，注册成功后直接颁发 access/refresh token。
     existing = await fetchone(
         "SELECT id FROM users WHERE email = :email OR username = :username",
         {"email": req.email, "username": req.username},
@@ -63,8 +64,9 @@ async def register(req: RegisterRequest):
     return await _issue_tokens(user["id"], user["username"], user["language"])
 
 
-@router.post("/login", response_model=TokenResponse, summary="用户登录")
+@router.post("/login", response_model=TokenResponse, summary="Login")
 async def login(req: LoginRequest):
+    # 验证邮箱和密码，通过后颁发 access/refresh token。
     user = await fetchone(
         "SELECT id, username, password_hash, language FROM users WHERE email = :email AND is_active = 1",
         {"email": req.email},
@@ -75,8 +77,9 @@ async def login(req: LoginRequest):
     return await _issue_tokens(user["id"], user["username"], user["language"])
 
 
-@router.post("/refresh", response_model=TokenResponse, summary="刷新 Access Token")
+@router.post("/refresh", response_model=TokenResponse, summary="Refresh Access Token")
 async def refresh(req: RefreshRequest):
+    # 使用有效的 refresh token 换取新的 access/refresh token（token 轮换）。
     token_hash = hash_refresh_token(req.refresh_token)
     record = await fetchone(
         """
@@ -102,8 +105,9 @@ async def refresh(req: RefreshRequest):
     return await _issue_tokens(record["user_id"], record["username"], record["language"])
 
 
-@router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
+@router.get("/me", response_model=UserResponse, summary="Get Current User")
 async def me(credentials: HTTPAuthorizationCredentials = Depends(_bearer)):
+    # 解析 Bearer token 并返回当前登录用户的完整信息。
     user = await get_current_user(credentials.credentials)
     return UserResponse(
         id=user["id"],
@@ -119,7 +123,7 @@ async def me(credentials: HTTPAuthorizationCredentials = Depends(_bearer)):
 # ── 可复用的认证依赖 ──────────────────────────────────────────────────────
 
 async def get_current_user(token: str) -> dict:
-    """从 JWT 中解析并验证用户，供路由直接调用"""
+    # 从 JWT 中解析并验证用户信息，验证失败时抛出 401 异常。
     try:
         payload = decode_access_token(token)
     except jwt.ExpiredSignatureError:
@@ -143,20 +147,17 @@ async def get_current_user(token: str) -> dict:
 async def auth_required(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict:
-    """路由级保护依赖，注入当前用户对象：
-        @router.get("/protected")
-        async def protected(user: dict = Depends(auth_required)):
-            ...
-    """
+    # 路由级认证依赖，验证 Bearer token 并将当前用户对象注入路由函数。
     return await get_current_user(credentials.credentials)
 
 
 # ── 内部工具 ──────────────────────────────────────────────────────────────
 
 async def _issue_tokens(user_id: int, username: str, language: str = "en") -> TokenResponse:
+    # 生成 access token 和 refresh token，并将 refresh token 哈希存入数据库。
     access_token = create_access_token(user_id, username, language)
     raw_refresh, refresh_hash = create_refresh_token()
-    expires_at = datetime.utcnow() + timedelta(days=settings.auth.refresh_token_expire_days)
+    expires_at = datetime.now() + timedelta(days=settings.auth.refresh_token_expire_days)
 
     await execute(
         """

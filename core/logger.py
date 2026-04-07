@@ -1,9 +1,10 @@
-"""统一日志配置"""
+"""Unified logging configuration"""
 import logging
 import sys
 
 
 def _make_logger() -> logging.Logger:
+    # 创建并配置项目全局 Logger，避免重复添加 Handler。
     log = logging.getLogger("growth_os")
     if log.handlers:
         return log

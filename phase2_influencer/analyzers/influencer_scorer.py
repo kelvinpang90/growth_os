@@ -1,6 +1,6 @@
 """
-Phase 2 — 达人综合评分模型
-维度：互动率 / GMV 带货力 / 粉丝质量 / 类目匹配度 / 内容活跃度
+Phase 2 — Influencer scoring model
+Dimensions: engagement rate / GMV power / audience quality / category fit / content activity
 """
 from dataclasses import dataclass
 from typing import Optional
@@ -42,6 +42,7 @@ class InfluencerScore:
 
 
 def get_tier(followers: int) -> tuple[str, str]:
+    # 根据粉丝量判断达人层级（kol/mid/koc/nano），返回层级 key 和展示标签。
     if followers >= 1_000_000:
         return "kol", INFLUENCER_TIERS["kol"]["label"]
     elif followers >= 100_000:
@@ -56,7 +57,7 @@ def score_influencer(
     influencer: dict,
     target_category: str = "",
 ) -> InfluencerScore:
-    """对单个达人进行多维度评分"""
+    # 对单个达人从互动率、GMV 带货力、粉丝质量、内容活跃度四个维度综合评分。
 
     platform  = influencer.get("platform", "tiktok")
     followers = int(influencer.get("followers", 0))
@@ -198,7 +199,7 @@ def batch_score(
     top_n: int = 20,
     min_score: float = 0,
 ) -> list[InfluencerScore]:
-    """批量评分，按 AI 评分排序，返回 Top N"""
+    # 批量对达人列表评分，过滤最低分阈值后按 AI 评分降序返回 Top N。
     scores = [score_influencer(inf, target_category) for inf in influencers]
     scores = [s for s in scores if s.ai_score >= min_score]
     scores.sort(key=lambda s: s.ai_score, reverse=True)
@@ -206,7 +207,7 @@ def batch_score(
 
 
 def generate_outreach_brief(score: InfluencerScore, product_title: str = "") -> str:
-    """生成达人招募简报（供 AI 生成话术时使用）"""
+    # 生成达人评分摘要文本，供 AI 生成个性化招募话术时使用。
     lines = [
         f"Influencer: @{score.username} ({score.tier_label}, {score.followers:,} followers)",
         f"Platform: {score.platform.upper()}",

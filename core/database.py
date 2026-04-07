@@ -1,6 +1,6 @@
 """
-MySQL 异步连接池（SQLAlchemy 2.x + aiomysql）
-所有模块通过 get_db() 获取 session
+MySQL async connection pool (SQLAlchemy 2.x + aiomysql)
+All modules obtain a session via get_db()
 """
 import json
 from contextlib import asynccontextmanager
@@ -22,6 +22,7 @@ _session_factory = None
 
 
 async def init_db() -> None:
+    # 初始化 SQLAlchemy 异步引擎和 session 工厂，并创建所有数据库表。
     global _engine, _session_factory
     _engine = create_async_engine(
         settings.db.url,
@@ -38,6 +39,7 @@ async def init_db() -> None:
 
 
 async def close_db() -> None:
+    # 释放数据库连接池资源。
     global _engine
     if _engine:
         await _engine.dispose()
@@ -46,6 +48,7 @@ async def close_db() -> None:
 
 @asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    # 提供事务性 async session 上下文管理器，自动提交或回滚。
     if _session_factory is None:
         await init_db()
     async with _session_factory() as session:
@@ -58,11 +61,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def execute(sql: str, params: dict = None) -> None:
+    # 执行不返回结果的 SQL 语句（INSERT/UPDATE/DELETE）。
     async with get_db() as session:
         await session.execute(text(sql), params or {})
 
 
 async def fetchall(sql: str, params: dict = None) -> list[dict]:
+    # 执行 SELECT 并将所有结果行以字典列表形式返回。
     if _session_factory is None:
         await init_db()
     async with _session_factory() as session:
@@ -73,6 +78,7 @@ async def fetchall(sql: str, params: dict = None) -> list[dict]:
 
 
 async def fetchone(sql: str, params: dict = None) -> dict | None:
+    # 执行 SELECT 并返回第一行结果字典，无结果时返回 None。
     rows = await fetchall(sql, params)
     return rows[0] if rows else None
 
@@ -93,11 +99,11 @@ _DDL_STATEMENTS = [
         gmv_estimate    DECIMAL(14,2)   DEFAULT 0,
         rating          DECIMAL(3,2)    DEFAULT 0,
         review_count    INT             DEFAULT 0,
-        trend_score     DECIMAL(5,2)    DEFAULT 0  COMMENT '趋势热度 0-100',
-        profit_rate     DECIMAL(5,2)    DEFAULT 0  COMMENT '估算利润率 %',
+        trend_score     DECIMAL(5,2)    DEFAULT 0  COMMENT 'trend heat 0-100',
+        profit_rate     DECIMAL(5,2)    DEFAULT 0  COMMENT 'estimated profit margin %',
         competition     VARCHAR(16)     DEFAULT 'medium' COMMENT 'low/medium/high',
-        ai_score        DECIMAL(5,2)    DEFAULT 0  COMMENT 'AI 综合评分 0-100',
-        ai_analysis     JSON                       COMMENT 'AI 分析结果',
+        ai_score        DECIMAL(5,2)    DEFAULT 0  COMMENT 'AI composite score 0-100',
+        ai_analysis     JSON                       COMMENT 'AI analysis result',
         raw_data        JSON,
         discovered_at   DATETIME        DEFAULT CURRENT_TIMESTAMP,
         updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -125,11 +131,11 @@ _DDL_STATEMENTS = [
     CREATE TABLE IF NOT EXISTS product_recommendations (
         id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         product_id      BIGINT UNSIGNED NOT NULL,
-        market_size     VARCHAR(32)     COMMENT '市场容量',
+        market_size     VARCHAR(32)     COMMENT 'market size',
         profit_rate     DECIMAL(5,2),
         competition     VARCHAR(16),
-        influencer_type VARCHAR(128)    COMMENT '推荐达人类型',
-        launch_plan     JSON            COMMENT '起盘方案',
+        influencer_type VARCHAR(128)    COMMENT 'recommended influencer type',
+        launch_plan     JSON            COMMENT 'launch plan',
         generated_at    DATETIME        DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_product (product_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -147,8 +153,8 @@ _DDL_STATEMENTS = [
         avg_engagement  DECIMAL(5,2)    DEFAULT 0,
         gmv_30d         DECIMAL(14,2)   DEFAULT 0,
         category        VARCHAR(128),
-        audience_data   JSON            COMMENT '粉丝画像',
-        performance     JSON            COMMENT '带货历史',
+        audience_data   JSON            COMMENT 'audience profile',
+        performance     JSON            COMMENT 'sales history',
         content_style   VARCHAR(256),
         commission_rate DECIMAL(5,2)    DEFAULT 0,
         contact_email   VARCHAR(256),
@@ -263,9 +269,9 @@ _DDL_STATEMENTS = [
         username        VARCHAR(64)     NOT NULL UNIQUE,
         email           VARCHAR(256)    NOT NULL UNIQUE,
         password_hash   VARCHAR(256)    NOT NULL,
-        platform        ENUM('tiktok','shopee','amazon') NOT NULL COMMENT '绑定平台（唯一）',
-        language        ENUM('zh','en')  DEFAULT 'en'  COMMENT '界面语言',
-        currency        ENUM('CNY','MYR') DEFAULT 'MYR' COMMENT '货币偏好',
+        platform        ENUM('tiktok','shopee','amazon') NOT NULL COMMENT 'bound platform (unique)',
+        language        ENUM('zh','en')  DEFAULT 'en'  COMMENT 'UI language',
+        currency        ENUM('CNY','MYR') DEFAULT 'MYR' COMMENT 'currency preference',
         is_active       TINYINT(1)      DEFAULT 1,
         created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP,
         updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -303,6 +309,7 @@ _DDL_STATEMENTS = [
 
 
 async def _create_all_tables() -> None:
+    # 依次执行 DDL 语句，创建所有业务数据库表（IF NOT EXISTS）。
     if _engine is None:
         return
     async with _engine.begin() as conn:

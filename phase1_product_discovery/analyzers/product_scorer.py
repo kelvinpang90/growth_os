@@ -1,5 +1,5 @@
 """
-Phase 1 — 利润率估算 + 商品综合评分模型
+Phase 1 — Profit margin estimator + product scoring model
 """
 from dataclasses import dataclass
 from typing import Optional
@@ -29,10 +29,7 @@ def estimate_profit(
     platform: str = "tiktok",
     weight_kg: float = 0.3,
 ) -> ProfitResult:
-    """
-    估算商品利润率。
-    cost_price 未知时，按行业均值（售价 30%）估算。
-    """
+    # 估算商品在指定平台的利润率，成本未知时按售价 30% 作为行业均值估算。
     fees = PLATFORM_FEE.get(platform, PLATFORM_FEE["tiktok"])
 
     if cost_price is None:
@@ -83,7 +80,7 @@ class ProductScore:
 
 
 def score_product(product: dict, profit_result: Optional[ProfitResult] = None) -> ProductScore:
-    """对单个商品进行多维度打分，输出 AI 综合评分"""
+    # 对单个商品从趋势、利润、竞争度、市场容量四个维度打分，输出综合 AI 评分。
 
     # 1. 趋势分
     trend = float(product.get("trend_score", 50))
@@ -150,7 +147,7 @@ def score_product(product: dict, profit_result: Optional[ProfitResult] = None) -
 
 
 def batch_score(products: list[dict], platform: str = "tiktok", top_n: int = 20) -> list[ProductScore]:
-    """批量评分，返回 Top N"""
+    # 批量对商品列表评分并按 AI 评分降序排列，返回 Top N 结果。
     scores = [score_product({**p, "platform": platform}) for p in products]
     scores.sort(key=lambda s: s.ai_score, reverse=True)
     return scores[:top_n]

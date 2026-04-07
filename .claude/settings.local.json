@@ -4,7 +4,13 @@
       "Bash(find E:/projects/growth_os/phase1_product_discovery -type f -name *.sql -o -name *.txt -o -name *.md)",
       "Bash(find E:projectsgrowth_os -type f -name *schema* -o -name *migration*)",
       "Bash(find /e/projects/growth_os -name scheduler_jobs.py -o -name *scheduler* -type f)",
-      "Bash(find /e/projects/growth_os/phase* -type d)"
+      "Bash(find /e/projects/growth_os/phase* -type d)",
+      "Bash(find .:*)",
+      "Bash(xargs wc:*)",
+      "Bash(chmod +x /tmp/analyze_chinese.sh)",
+      "Bash(/tmp/analyze_chinese.sh)",
+      "Bash(chmod +x /tmp/get_chinese_code.sh)",
+      "Bash(/tmp/get_chinese_code.sh)"
     ]
   }
 }

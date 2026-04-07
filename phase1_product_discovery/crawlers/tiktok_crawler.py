@@ -1,45 +1,31 @@
 """
-Phase 1 — TikTok 爬虫
-抓取：热卖商品 / Shop GMV / 达人爆款视频 / 评论关键词
+Phase 1 — TikTok Crawler
+Fetches: trending products / Shop GMV / viral videos / comment keywords
 """
-import hashlib
-import hmac
-import time
 from datetime import datetime
 
 import httpx
 
-from core.config import settings
 from core.logger import logger
+from core.tiktok_client import TikTokSigner
 
 
 class TikTokCrawler:
     BASE = "https://open-api.tiktokglobalshop.com"
 
     def __init__(self):
-        self.app_key    = settings.tiktok.app_key
-        self.app_secret = settings.tiktok.app_secret
-        self.token      = settings.tiktok.access_token
-        self.shop_id    = settings.tiktok.shop_id
-
-    # ── 签名 ─────────────────────────────────────────────────────────────
-    def _sign(self, path: str, params: dict) -> dict:
-        ts = str(int(time.time()))
-        p  = {**params, "app_key": self.app_key, "timestamp": ts,
-              "access_token": self.token, "shop_id": self.shop_id}
-        s  = "".join(f"{k}{v}" for k, v in sorted(p.items()))
-        p["sign"] = hmac.new(self.app_secret.encode(), f"{self.app_secret}{path}{s}{self.app_secret}".encode(), hashlib.sha256).hexdigest().upper()
-        return p
+        self._signer = TikTokSigner()
 
     async def _get(self, path: str, params: dict = None) -> dict:
-        signed = self._sign(path, params or {})
+        # 向 TikTok API 发送带签名的 GET 请求并返回 JSON 响应。
+        signed = self._signer.sign(path, params or {})
         async with httpx.AsyncClient(timeout=30) as c:
             r = await c.get(f"{self.BASE}{path}", params=signed)
             return r.json()
 
     # ── 公开接口 ──────────────────────────────────────────────────────────
     async def get_trending_products(self, category_id: str = "", limit: int = 100) -> list[dict]:
-        """抓 TikTok Shop 热卖商品"""
+        # 抓取 TikTok Shop 按销量排序的热卖商品列表。
         if settings.mock_mode:
             return _mock_trending_products(limit)
         data = await self._get("/api/products/search", {
@@ -49,7 +35,7 @@ class TikTokCrawler:
         return data.get("data", {}).get("products", [])
 
     async def get_shop_gmv(self, start_date: str, end_date: str) -> dict:
-        """抓店铺 GMV 数据"""
+        # 抓取指定日期区间的 TikTok 店铺 GMV 及订单数据。
         if settings.mock_mode:
             return _mock_gmv(start_date, end_date)
         data = await self._get("/api/shop/performance", {
@@ -59,7 +45,7 @@ class TikTokCrawler:
         return data.get("data", {})
 
     async def get_viral_videos(self, keyword: str = "", limit: int = 50) -> list[dict]:
-        """抓达人爆款视频（TikTok Creative Center API）"""
+        # 通过 TikTok Creative Center API 抓取近期爆款视频列表。
         if settings.mock_mode:
             return _mock_viral_videos(limit)
         # Creative Center 趋势视频
@@ -71,7 +57,7 @@ class TikTokCrawler:
             return r.json().get("data", {}).get("list", [])
 
     async def get_video_comments_keywords(self, video_id: str) -> list[dict]:
-        """抓视频评论关键词（需要 Research API 权限）"""
+        # 抓取指定视频的评论高频关键词，需要 TikTok Research API 权限。
         if settings.mock_mode:
             return _mock_comment_keywords()
         data = await self._get(f"/api/research/video/{video_id}/comments", {"count": 200})
@@ -81,6 +67,7 @@ class TikTokCrawler:
 
 # ── Mock 数据 ─────────────────────────────────────────────────────────────
 def _mock_trending_products(limit: int) -> list[dict]:
+    # 生成模拟的 TikTok 热卖商品数据，用于 mock 模式测试。
     import random
     categories = ["Beauty", "Electronics", "Home & Garden", "Fashion", "Sports", "Pet Supplies"]
     products = []
@@ -107,6 +94,7 @@ def _mock_trending_products(limit: int) -> list[dict]:
 
 
 def _mock_gmv(start: str, end: str) -> dict:
+    # 生成模拟的店铺 GMV 汇总数据。
     import random
     return {
         "gmv": round(random.uniform(10000, 200000), 2),
@@ -118,6 +106,7 @@ def _mock_gmv(start: str, end: str) -> dict:
 
 
 def _mock_viral_videos(limit: int) -> list[dict]:
+    # 生成模拟的爆款视频列表数据。
     import random
     return [{
         "video_id":     f"VID_{i:05d}",
@@ -133,6 +122,7 @@ def _mock_viral_videos(limit: int) -> list[dict]:
 
 
 def _mock_comment_keywords() -> list[dict]:
+    # 生成模拟的视频评论关键词列表。
     kws = ["good quality", "fast shipping", "love it", "recommend", "value for money",
            "amazing", "worth it", "packaging nice", "exactly as described", "repurchase"]
     import random
@@ -140,6 +130,7 @@ def _mock_comment_keywords() -> list[dict]:
 
 
 def _extract_keywords(comments: list) -> list[dict]:
+    # 从评论列表中提取高频词，过滤停用词后返回词频统计。
     from collections import Counter
     import re
     words = []

@@ -1,7 +1,7 @@
 """
-Phase 1 — Amazon BSR 爬虫
-抓取：Best Seller Rank 商品 / 新品榜单
-依赖：Rainforest API（https://www.rainforestapi.com）
+Phase 1 — Amazon BSR Crawler
+Fetches: Best Seller Rank products / new releases
+Depends on: Rainforest API (https://www.rainforestapi.com)
 """
 import random
 from datetime import datetime
@@ -13,7 +13,7 @@ from core.logger import logger
 
 
 class AmazonCrawler:
-    """Amazon Best Seller Rank + 趋势商品"""
+    """Amazon Best Seller Rank + trending products crawler."""
 
     BSR_CATEGORIES = {
         "beauty":      "11055981",
@@ -25,7 +25,7 @@ class AmazonCrawler:
     }
 
     async def get_bsr_products(self, category: str = "beauty", limit: int = 50) -> list[dict]:
-        """抓取 Amazon BSR 热销商品"""
+        # 通过 Rainforest API 抓取指定类目的 Amazon BSR 热销商品列表。
         if settings.mock_mode:
             return _mock_amazon_products(category, limit)
         try:
@@ -48,7 +48,7 @@ class AmazonCrawler:
             raise
 
     async def get_new_releases(self, category: str = "beauty", limit: int = 20) -> list[dict]:
-        """抓取 Amazon 新品榜单"""
+        # 抓取 Amazon 指定类目的新品榜单。
         if settings.mock_mode:
             return _mock_amazon_products(category, limit)
         try:
@@ -71,6 +71,7 @@ class AmazonCrawler:
 
 # ── 数据标准化 ────────────────────────────────────────────────────────────
 def _normalize_amazon(item: dict) -> dict:
+    # 将 Rainforest API 返回的商品字段标准化为内部统一格式。
     return {
         "product_id":   item.get("asin", ""),
         "title":        item.get("title", ""),
@@ -90,6 +91,7 @@ def _normalize_amazon(item: dict) -> dict:
 
 # ── Mock 数据 ─────────────────────────────────────────────────────────────
 def _mock_amazon_products(category: str, limit: int) -> list[dict]:
+    # 生成模拟的 Amazon 热销商品数据，用于 mock 模式测试。
     products = []
     for i in range(min(limit, 20)):
         price = round(random.uniform(8, 200), 2)

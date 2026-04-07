@@ -1,6 +1,6 @@
 """
-AI Growth OS — FastAPI 主入口
-整合 Phase 1-5 所有模块
+AI Growth OS — FastAPI entry point
+Integrates all Phase 1–5 modules
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -21,6 +21,7 @@ from phase2_influencer.api        import router as phase2_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 应用生命周期管理：启动时初始化数据库和调度器，关闭时优雅停止。
     logger.info("AI Growth OS 启动中...")
     await init_db()
     await start_scheduler()
@@ -32,13 +33,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI Growth OS — 跨境电商增长操作系统",
+    title="AI Growth OS — Cross-border E-commerce Growth Operating System",
     description=(
-        "**Phase 1**: AI 选品 + 爆品发现  \n"
-        "**Phase 2**: AI 达人开发 Agent  \n"
-        "**Phase 3**: 商品发布 + 多平台同步  \n"
-        "**Phase 4**: AI 客服 + 售后自动化  \n"
-        "**Phase 5**: 老板驾驶舱"
+        "**Phase 1**: AI Product Discovery  \n"
+        "**Phase 2**: AI Influencer Outreach Agent  \n"
+        "**Phase 3**: Product Listing + Multi-platform Sync  \n"
+        "**Phase 4**: AI Customer Service + After-sales Automation  \n"
+        "**Phase 5**: Boss Dashboard"
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -62,15 +63,16 @@ app.include_router(phase2_router)
 
 @app.get("/", tags=["System"])
 async def root():
+    # 返回系统概览，包含各 Phase 的名称和主要接口路径。
     return {
         "system": "AI Growth OS",
         "version": "1.0.0",
         "phases": {
-            "phase1": {"name": "AI 选品发现", "endpoints": ["/api/phase1/run-discovery", "/api/phase1/recommendations"]},
-            "phase2": {"name": "达人开发",    "endpoints": ["/api/phase2/run-outreach",  "/api/phase2/influencers"]},
-            "phase3": {"name": "多平台发品",   "endpoints": ["/api/phase3/sync-product",  "/api/phase3/listings"]},
-            "phase4": {"name": "AI 客服",     "endpoints": ["/api/phase4/ticket",         "/api/phase4/tickets"]},
-            "phase5": {"name": "老板驾驶舱",   "endpoints": ["/api/phase5/dashboard",      "/api/phase5/insights"]},
+            "phase1": {"name": "AI Product Discovery",    "endpoints": ["/api/phase1/run-discovery", "/api/phase1/recommendations"]},
+            "phase2": {"name": "Influencer Outreach",     "endpoints": ["/api/phase2/run-outreach",  "/api/phase2/influencers"]},
+            "phase3": {"name": "Multi-platform Listing",  "endpoints": ["/api/phase3/sync-product",  "/api/phase3/listings"]},
+            "phase4": {"name": "AI Customer Service",     "endpoints": ["/api/phase4/ticket",         "/api/phase4/tickets"]},
+            "phase5": {"name": "Boss Dashboard",          "endpoints": ["/api/phase5/dashboard",      "/api/phase5/insights"]},
         },
         "docs": "/docs",
         "health": "/health",
@@ -79,6 +81,7 @@ async def root():
 
 @app.get("/health", tags=["System"])
 async def health():
+    # 健康检查接口，返回服务运行状态。
     return {"status": "ok"}
 
 

@@ -1,5 +1,5 @@
 """
-定时任务调度器 — APScheduler AsyncIO
+Scheduled task dispatcher — APScheduler AsyncIO
 """
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -9,11 +9,12 @@ _scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
 
 def get_scheduler() -> AsyncIOScheduler:
+    # 返回全局 APScheduler 实例。
     return _scheduler
 
 
 def register_all_jobs() -> None:
-    """注册所有 Phase 定时任务"""
+    # 注册所有 Phase 定时任务（Phase 1 爬虫 + AI 分析，Phase 2 达人招募）。
     from phase1_product_discovery.scheduler_jobs import (
         job_crawl_tiktok_trending,
         job_crawl_amazon_bsr,
@@ -52,11 +53,13 @@ def register_all_jobs() -> None:
 
 
 async def start_scheduler() -> None:
+    # 注册所有任务并启动调度器。
     register_all_jobs()
     _scheduler.start()
     logger.info("定时调度器启动")
 
 
 async def stop_scheduler() -> None:
+    # 停止调度器，不等待当前运行中的任务完成。
     _scheduler.shutdown(wait=False)
     logger.info("定时调度器已停止")

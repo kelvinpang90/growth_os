@@ -1,85 +1,49 @@
 """
-Phase 1 — APScheduler 定时任务
+Phase 1 — APScheduler scheduled jobs
 """
-import asyncio
-import time
-
-from core.database import execute
 from core.logger import logger
-
-# AI Agent 任务最长允许运行时间（秒）
-# Claude API 最多 20 轮，每轮约 1–10s，给足裕量
-_AI_TASK_TIMEOUT = 600
-
-
-async def _log_task(name: str, phase: str, status: str, detail: str, ms: int):
-    try:
-        await execute(
-            "INSERT INTO task_logs (task_name, phase, status, detail, duration_ms) VALUES (:n,:p,:s,:d,:ms)",
-            {"n": name, "p": phase, "s": status, "d": detail[:2000], "ms": ms}
-        )
-    except Exception as e:
-        logger.error(f"task_log 写入失败: {e}")
+from core.scheduler_utils import run_crawl_job, run_ai_job
 
 
 async def job_crawl_tiktok_trending():
-    t0 = time.monotonic()
-    logger.info("[Scheduler] job_crawl_tiktok_trending 开始")
-    try:
+    # 抓取 TikTok 热销商品和病毒视频，将执行结果记录到任务日志。
+    async def _do():
         from phase1_product_discovery.crawlers.tiktok_crawler import TikTokCrawler
         crawler  = TikTokCrawler()
         products = await crawler.get_trending_products(limit=100)
         videos   = await crawler.get_viral_videos(limit=50)
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("tiktok_trending", "phase1", "success",
-                        f"商品:{len(products)}, 视频:{len(videos)}", ms)
-        logger.info(f"[Scheduler] TikTok 抓取完成: {len(products)} 商品 | {ms}ms")
-    except Exception as e:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("tiktok_trending", "phase1", "failed", str(e), ms)
-        logger.error(f"[Scheduler] TikTok 抓取失败: {e}")
+        return f"products:{len(products)}, videos:{len(videos)}"
+    await run_crawl_job("tiktok_trending", "phase1", "TikTok 抓取", _do())
 
 
 async def job_crawl_amazon_bsr():
-    t0 = time.monotonic()
-    logger.info("[Scheduler] job_crawl_amazon_bsr 开始")
-    try:
+    # 抓取 Amazon 多品类 BSR 榜单商品，将执行结果记录到任务日志。
+    async def _do():
         from phase1_product_discovery.crawlers.amazon_crawler import AmazonCrawler
         crawler = AmazonCrawler()
         cats    = ["beauty", "electronics", "home", "sports"]
-        total   = 0
-        for cat in cats:
-            products = await crawler.get_bsr_products(cat, limit=30)
-            total   += len(products)
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("amazon_bsr", "phase1", "success", f"共 {total} 商品", ms)
-        logger.info(f"[Scheduler] Amazon 抓取完成: {total} 商品 | {ms}ms")
-    except Exception as e:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("amazon_bsr", "phase1", "failed", str(e), ms)
-        logger.error(f"[Scheduler] Amazon 抓取失败: {e}")
+        total   = sum(
+            len(await crawler.get_bsr_products(cat, limit=30))
+            for cat in cats
+        )
+        return f"{total} products"
+    await run_crawl_job("amazon_bsr", "phase1", "Amazon 抓取", _do())
 
 
 async def job_crawl_shopee_trending():
-    t0 = time.monotonic()
-    logger.info("[Scheduler] job_crawl_shopee_trending 开始")
-    try:
+    # 抓取 Shopee 热销商品列表，将执行结果记录到任务日志。
+    async def _do():
         from phase1_product_discovery.crawlers.shopee_crawler import ShopeeCrawler
         products = await ShopeeCrawler().get_trending_products(limit=80)
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("shopee_trending", "phase1", "success", f"{len(products)} 商品", ms)
-        logger.info(f"[Scheduler] Shopee 抓取完成: {len(products)} 商品 | {ms}ms")
-    except Exception as e:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("shopee_trending", "phase1", "failed", str(e), ms)
-        logger.error(f"[Scheduler] Shopee 抓取失败: {e}")
+        return f"{len(products)} products"
+    await run_crawl_job("shopee_trending", "phase1", "Shopee 抓取", _do())
 
 
 async def job_crawl_google_trends():
-    t0 = time.monotonic()
-    logger.info("[Scheduler] job_crawl_google_trends 开始")
-    try:
+    # 抓取 Google Trends 热词并写入数据库，将执行结果记录到任务日志。
+    async def _do():
         from phase1_product_discovery.crawlers.google_trends_crawler import GoogleTrendsCrawler
+        from core.database import execute
         kws = await GoogleTrendsCrawler().get_trending_keywords(limit=30)
         for kw in kws:
             await execute(
@@ -88,34 +52,11 @@ async def job_crawl_google_trends():
                 {"kw": kw["keyword"], "pl": "google", "vol": kw.get("volume", 0),
                  "tr": kw.get("trend", "rising"), "geo": kw.get("geo", "US")}
             )
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("google_trends", "phase1", "success", f"{len(kws)} 关键词", ms)
-        logger.info(f"[Scheduler] Google Trends 完成: {len(kws)} 关键词 | {ms}ms")
-    except Exception as e:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("google_trends", "phase1", "failed", str(e), ms)
-        logger.error(f"[Scheduler] Google Trends 失败: {e}")
+        return f"{len(kws)} keywords"
+    await run_crawl_job("google_trends", "phase1", "Google Trends", _do())
 
 
 async def job_ai_discovery_analysis():
-    t0 = time.monotonic()
-    logger.info("[Scheduler] job_ai_discovery_analysis 开始")
-    try:
-        from phase1_product_discovery.agents.discovery_agent import DiscoveryAgent
-        agent  = DiscoveryAgent()
-        result = await asyncio.wait_for(
-            agent.run_daily_discovery(),
-            timeout=_AI_TASK_TIMEOUT,
-        )
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("ai_discovery", "phase1", "success", result[:500], ms)
-        logger.info(f"[Scheduler] AI 选品分析完成 | {ms}ms")
-    except asyncio.TimeoutError:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("ai_discovery", "phase1", "failed",
-                        f"任务超时（>{_AI_TASK_TIMEOUT}s）", ms)
-        logger.error(f"[Scheduler] AI 选品分析超时（>{_AI_TASK_TIMEOUT}s），已终止")
-    except Exception as e:
-        ms = int((time.monotonic() - t0) * 1000)
-        await _log_task("ai_discovery", "phase1", "failed", str(e), ms)
-        logger.error(f"[Scheduler] AI 选品分析失败: {e}")
+    # 运行 AI 选品分析 Agent，超时后强制终止并记录错误日志。
+    from phase1_product_discovery.agents.discovery_agent import DiscoveryAgent
+    await run_ai_job("ai_discovery", "phase1", "AI 选品分析", DiscoveryAgent().run_daily_discovery())
