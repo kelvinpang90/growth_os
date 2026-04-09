@@ -85,7 +85,7 @@ def _mock_trending_products(limit: int) -> list[dict]:
             "sales_volume": sold,
             "gmv_estimate": round(price * sold * 0.7, 2),
             "rating":       round(random.uniform(3.8, 5.0), 1),
-            "review_count": random.randint(100, 8000),
+            "review":       random.randint(100, 8000),
             "trend_score":  round(random.uniform(60, 99), 1),
             "platform":     "tiktok",
             "discovered_at": datetime.now().isoformat(),

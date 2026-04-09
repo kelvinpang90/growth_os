@@ -23,7 +23,7 @@
             {{ $t('phase1.refresh') }}
           </el-button>
           <el-table :data="products" style="margin-top: 12px" stripe>
-            <el-table-column prop="name" :label="$t('col.product_name')" />
+            <el-table-column prop="title" :label="$t('col.product_name')" />
             <el-table-column prop="platform" :label="$t('col.platform')" width="100" />
             <el-table-column prop="score" :label="$t('col.ai_score')" width="80" />
           </el-table>
@@ -62,7 +62,7 @@ async function fetchProducts() {
   loadingProducts.value = true
   try {
     const res = await axios.get('/api/phase1/recommendations')
-    products.value = res.data
+    products.value = res.data.data ?? []
   } catch {
     ElMessage.error(t('phase1.error_products'))
   } finally {

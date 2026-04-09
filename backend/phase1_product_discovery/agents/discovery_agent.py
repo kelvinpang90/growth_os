@@ -196,7 +196,7 @@ class DiscoveryAgent(BaseAgent):
                 "price":        original.get("price", 0),
                 "sales_volume": original.get("sales_volume", 0),
                 "rating":       original.get("rating", 0),
-                "review_count": original.get("review_count", 0),
+                "review":       original.get("review", 0),
             })
 
         return {
@@ -259,7 +259,7 @@ class DiscoveryAgent(BaseAgent):
         # 查询近 N 天已推荐商品历史，用于 AI 去重判断。
         days = params.get("days", 7)
         rows = await fetchall("""
-            SELECT product_id, title, platform, ai_score, discovered_at
+            SELECT title, platform, ai_score, discovered_at
             FROM discovered_products
             WHERE discovered_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
             ORDER BY ai_score DESC LIMIT 50

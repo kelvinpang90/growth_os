@@ -96,7 +96,7 @@ def _normalize_shopee(item: dict) -> dict:
         "currency":     "USD",
         "sales_volume": item.get("sold", 0),
         "rating":       item.get("item_rating", {}).get("rating_star", 0),
-        "review_count": item.get("item_rating", {}).get("rating_count", [0])[-1]
+        "review":       item.get("item_rating", {}).get("rating_count", [0])[-1]
                         if item.get("item_rating", {}).get("rating_count") else 0,
         "gmv_estimate": 0,
         "trend_score":  round(random.uniform(40, 90), 1),
@@ -117,7 +117,7 @@ def _mock_shopee_products(limit: int) -> list[dict]:
         "currency":     "USD",
         "sales_volume": random.randint(100, 20000),
         "rating":       round(random.uniform(3.5, 5.0), 1),
-        "review_count": random.randint(20, 5000),
+        "review":       random.randint(20, 5000),
         "gmv_estimate": 0,
         "trend_score":  round(random.uniform(40, 90), 1),
         "platform":     "shopee",

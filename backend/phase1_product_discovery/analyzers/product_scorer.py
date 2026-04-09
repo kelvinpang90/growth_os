@@ -93,8 +93,8 @@ def score_product(product: dict, profit_result: Optional[ProfitResult] = None) -
         p = estimate_profit(price, platform=product.get("platform", "tiktok"))
         profit_score = min(100, p.profit_rate * 2)
 
-    # 3. 竞争度分（review_count 反映竞争激烈程度）
-    reviews = int(product.get("review_count", 0))
+    # 3. 竞争度分（review 反映竞争激烈程度）
+    reviews = int(product.get("review", 0))
     if reviews < 200:
         comp_score, competition = 90, "low"
     elif reviews < 2000:

@@ -78,7 +78,7 @@ def _normalize_amazon(item: dict) -> dict:
         "price":        item.get("price", {}).get("value", 0),
         "currency":     "USD",
         "rating":       item.get("rating", 0),
-        "review_count": item.get("ratings_total", 0),
+        "review":       item.get("ratings_total", 0),
         "bsr_rank":     item.get("rank", 0),
         "sales_volume": 0,                                  # BSR API 无直接销量，由 rank 推算
         "gmv_estimate": 0,
@@ -105,7 +105,7 @@ def _mock_amazon_products(category: str, limit: int) -> list[dict]:
             "sales_volume": sold,
             "gmv_estimate": round(price * sold * 0.6, 2),
             "rating":       round(random.uniform(3.5, 5.0), 1),
-            "review_count": random.randint(50, 20000),
+            "review":       random.randint(50, 20000),
             "bsr_rank":     i + 1,
             "trend_score":  round(random.uniform(50, 95), 1),
             "platform":     "amazon",

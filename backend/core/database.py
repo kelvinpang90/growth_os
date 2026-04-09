@@ -87,7 +87,7 @@ async def fetchone(sql: str, params: dict = None) -> dict | None:
 _DDL_STATEMENTS = [
     # Phase 1 — 选品
     """
-CREATE TABLE `discovered_products`  (
+CREATE TABLE IF NOT EXISTS `discovered_products`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `platform` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'tiktok/amazon/shopee/google',
   `title` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
