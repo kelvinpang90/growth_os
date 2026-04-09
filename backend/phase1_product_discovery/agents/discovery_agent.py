@@ -56,8 +56,8 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "selling_price": {"type": "number", "description": "Expected selling price (USD)"},
-                "cost_price":    {"type": "number", "description": "Procurement cost (USD)"},
+                "selling_price": {"type": "number", "description": "Expected selling price (MYR)"},
+                "cost_price":    {"type": "number", "description": "Procurement cost (MYR)"},
                 "platform":      {"type": "string", "default": "tiktok"},
                 "weight_kg":     {"type": "number", "default": 0.3}
             },
@@ -73,7 +73,25 @@ _TOOLS = [
                 "recommendations": {
                     "type": "array",
                     "description": "List of recommended products with full analysis",
-                    "items": {"type": "object"}
+                    "items": {
+                        "type": "object",
+                        "properties":{
+                            "platform":{"type": "string"},
+                            "title":{"type": "string"},
+                            "category":{"type": "string"},
+                            "price":{"type": "string"},
+                            "sales_volume":{"type": "string"},
+                            "gmv":{"type": "string"},
+                            "rating":{"type": "string"},
+                            "reviews":{"type": "string"},
+                            "profit_margin":{"type": "string"},
+                            "trend":{"type": "string"},
+                            "competition_level":{"type": "string"},
+                            "ai_score":{"type": "string"},
+                            "recommendation_reason":{"type": "string"},
+                            "raw_data":{"type": "string"},
+                        },
+                    }
                 }
             },
             "required": ["recommendations"]
@@ -150,6 +168,7 @@ class DiscoveryAgent(BaseAgent):
 
             except Exception as e:
                 logger.error(f"{platform} 抓取出错: {e}")
+                logger.error(e)
 
         return {
             "total_products": len(all_products),
@@ -205,30 +224,30 @@ class DiscoveryAgent(BaseAgent):
                 # upsert discovered_products
                 await execute("""
                     INSERT INTO discovered_products
-                        (platform, product_id, title, category, price, sales_volume,
-                         gmv_estimate, rating, review_count, trend_score, profit_rate,
-                         competition, ai_score, ai_analysis)
+                        (platform, title, category, price, sales_volume,
+                         gmv_estimate, rating, review, trend_score, profit_rate,
+                         competition, ai_score, ai_analysis,raw_data)
                     VALUES
-                        (:platform, :pid, :title, :cat, :price, :sales, :gmv,
-                         :rating, :reviews, :trend, :profit, :comp, :ai_score, :analysis)
+                        (:platform, :title, :cat, :price, :sales, :gmv,
+                         :rating, :reviews, :trend, :profit, :comp, :ai_score, :analysis, :raw_data)
                     ON DUPLICATE KEY UPDATE
                         ai_score=VALUES(ai_score), ai_analysis=VALUES(ai_analysis),
                         trend_score=VALUES(trend_score), updated_at=CURRENT_TIMESTAMP
                 """, {
                     "platform": rec.get("platform", "tiktok"),
-                    "pid":      rec.get("product_id", ""),
-                    "title":    rec.get("title", "")[:500],
-                    "cat":      rec.get("category", ""),
-                    "price":    rec.get("price", 0),
-                    "sales":    rec.get("sales_volume", 0),
-                    "gmv":      rec.get("gmv_estimate", 0),
-                    "rating":   rec.get("rating", 0),
-                    "reviews":  rec.get("review_count", 0),
-                    "trend":    rec.get("trend_score", 0),
-                    "profit":   rec.get("profit_rate", 0),
-                    "comp":     rec.get("competition", "medium"),
+                    "title":    rec.get("title", ""),
+                    "cat":    rec.get("category", ""),
+                    "price":    rec.get("price"),
+                    "sales":    rec.get("sales_volume"),
+                    "gmv":      rec.get("gmv"),
+                    "rating":   rec.get("rating"),
+                    "reviews":  rec.get("reviews"),
+                    "trend":    rec.get("trend", 0),
+                    "profit":   rec.get("profit_margin"),
+                    "comp":     rec.get("competition_level", "Medium"),
                     "ai_score": rec.get("ai_score", 0),
-                    "analysis": json.dumps(rec.get("launch_plan", {}), ensure_ascii=False),
+                    "analysis": rec.get("recommendation_reason"),
+                    "raw_data": json.dumps(rec, ensure_ascii=False),
                 })
                 saved += 1
             except Exception as e:

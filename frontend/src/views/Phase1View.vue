@@ -1,31 +1,31 @@
 <template>
   <div class="page">
-    <el-page-header @back="$router.push('/')" content="选品发现 Phase 1" />
+    <el-page-header @back="$router.push('/')" :content="$t('phase1.title')" />
 
     <el-row :gutter="16" style="margin-top: 20px">
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header>热门关键词</template>
+          <template #header>{{ $t('phase1.trending_keywords') }}</template>
           <el-button type="primary" :loading="loadingKeywords" @click="fetchKeywords">
-            刷新
+            {{ $t('phase1.refresh') }}
           </el-button>
           <el-table :data="keywords" style="margin-top: 12px" stripe>
-            <el-table-column prop="keyword" label="关键词" />
-            <el-table-column prop="platform" label="平台" width="100" />
-            <el-table-column prop="score" label="热度" width="80" />
+            <el-table-column prop="keyword" :label="$t('col.keyword')" />
+            <el-table-column prop="platform" :label="$t('col.platform')" width="100" />
+            <el-table-column prop="score" :label="$t('col.score')" width="80" />
           </el-table>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header>AI 推荐产品</template>
+          <template #header>{{ $t('phase1.recommended_products') }}</template>
           <el-button type="primary" :loading="loadingProducts" @click="fetchProducts">
-            刷新
+            {{ $t('phase1.refresh') }}
           </el-button>
           <el-table :data="products" style="margin-top: 12px" stripe>
-            <el-table-column prop="name" label="产品名称" />
-            <el-table-column prop="platform" label="平台" width="100" />
-            <el-table-column prop="score" label="评分" width="80" />
+            <el-table-column prop="name" :label="$t('col.product_name')" />
+            <el-table-column prop="platform" :label="$t('col.platform')" width="100" />
+            <el-table-column prop="score" :label="$t('col.ai_score')" width="80" />
           </el-table>
         </el-card>
       </el-col>
@@ -35,8 +35,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+
+const { t } = useI18n()
 
 const keywords = ref<any[]>([])
 const products = ref<any[]>([])
@@ -49,7 +52,7 @@ async function fetchKeywords() {
     const res = await axios.get('/api/phase1/trending-keywords')
     keywords.value = res.data
   } catch {
-    ElMessage.error('获取关键词失败')
+    ElMessage.error(t('phase1.error_keywords'))
   } finally {
     loadingKeywords.value = false
   }
@@ -61,7 +64,7 @@ async function fetchProducts() {
     const res = await axios.get('/api/phase1/recommendations')
     products.value = res.data
   } catch {
-    ElMessage.error('获取产品失败')
+    ElMessage.error(t('phase1.error_products'))
   } finally {
     loadingProducts.value = false
   }

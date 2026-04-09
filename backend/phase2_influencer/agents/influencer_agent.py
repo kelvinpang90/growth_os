@@ -447,7 +447,7 @@ class InfluencerAgent(BaseAgent):
     async def _get_products(self, params: dict) -> dict:
         # 从 Phase 1 数据库获取近期高分推荐商品，用于达人匹配。
         rows = await fetchall("""
-            SELECT product_id, platform, title, category, price,
+            SELECT platform, title, category, price,
                    sales_volume, trend_score, profit_rate, ai_score, ai_analysis
             FROM discovered_products
             WHERE ai_score >= :min_score

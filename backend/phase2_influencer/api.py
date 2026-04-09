@@ -7,12 +7,25 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
-from core.database import fetchall, fetchone, execute
 from core.logger import logger
 from phase2_influencer.agents.influencer_agent import InfluencerAgent
 from phase2_influencer.analyzers.influencer_scorer import batch_score, score_influencer
 from phase2_influencer.crawlers.influencer_crawler import (
     TikTokInfluencerCrawler, YouTubeCrawler,
+)
+from phase2_influencer.repositories.influencer_repository import (
+    get_influencer_by_id,
+    get_outreach_history,
+    get_outreach_record_influencer_id,
+    get_outreach_records,
+    get_pipeline_status_counts,
+    get_outreach_summary,
+    get_task_logs,
+    insert_outreach_record,
+    list_influencers,
+    mark_outreach_replied,
+    set_influencer_contacted,
+    update_influencer_status,
 )
 
 router = APIRouter(prefix="/api/phase2", tags=["Phase2 — Influencer Outreach"])
@@ -56,64 +69,37 @@ async def run_outreach(
 
 @router.get("/influencers", summary="Get influencer list")
 async def get_influencers(
-    platform:   Optional[str] = Query(None),
-    status:     Optional[str] = Query(None, description="discovered/contacted/negotiating/signed"),
-    tier:       Optional[str] = Query(None, description="kol/mid/koc/nano"),
-    min_score:  float = Query(0.0),
-    min_followers: int = Query(0),
-    limit:      int   = Query(30),
-    offset:     int   = Query(0),
+    platform:      Optional[str] = Query(None),
+    category:      Optional[str] = Query(None),
+    status:        Optional[str] = Query(None, description="discovered/contacted/negotiating/signed"),
+    tier:          Optional[str] = Query(None, description="kol/mid/koc/nano"),
+    min_score:     float = Query(0.0),
+    min_followers: int   = Query(0),
+    limit:         int   = Query(30),
+    offset:        int   = Query(0),
 ):
-    # 按平台、状态、层级、最低评分等条件过滤并分页返回达人列表。
-    conditions = ["ai_score >= :min_score", "followers >= :min_followers"]
-    params: dict = {"min_score": min_score, "min_followers": min_followers,
-                    "limit": limit, "offset": offset}
-
-    if platform:
-        conditions.append("platform = :platform")
-        params["platform"] = platform
-    if status:
-        conditions.append("status = :status")
-        params["status"] = status
-
-    where = " AND ".join(conditions)
-    rows = await fetchall(f"""
-        SELECT id, platform, influencer_id, username, display_name,
-               followers, avg_views, avg_engagement, gmv_30d, category,
-               content_style, commission_rate, contact_email, contact_wa,
-               ai_score, status, updated_at
-        FROM influencers
-        WHERE {where}
-        ORDER BY ai_score DESC
-        LIMIT :limit OFFSET :offset
-    """, params)
-
-    # 前端过滤 tier（数据库无 tier 字段，由 followers 推断）
-    if tier:
-        tier_ranges = {"kol": (1_000_000, 99_999_999), "mid": (100_000, 999_999),
-                       "koc": (10_000, 99_999), "nano": (0, 9_999)}
-        lo, hi = tier_ranges.get(tier, (0, 99_999_999))
-        rows = [r for r in rows if lo <= r["followers"] <= hi]
-
+    # 按平台、类目、状态、层级、最低评分等条件过滤并分页返回达人列表。
+    rows = await list_influencers(
+        min_score=min_score,
+        min_followers=min_followers,
+        limit=limit,
+        offset=offset,
+        platform=platform,
+        status=status,
+        category=category,
+        tier=tier,
+    )
     return {"count": len(rows), "data": rows}
 
 
 @router.get("/influencers/{influencer_db_id}", summary="Get influencer detail")
 async def get_influencer_detail(influencer_db_id: int):
     # 获取达人完整档案，同时返回最近 10 条招募历史记录。
-    row = await fetchone(
-        "SELECT * FROM influencers WHERE id = :id",
-        {"id": influencer_db_id},
-    )
+    row = await get_influencer_by_id(influencer_db_id)
     if not row:
         raise HTTPException(status_code=404, detail="Influencer not found")
 
-    # 同时返回招募历史
-    outreach = await fetchall("""
-        SELECT channel, message, sent_at, replied, reply_content, replied_at
-        FROM outreach_records WHERE influencer_id = :id ORDER BY sent_at DESC LIMIT 10
-    """, {"id": influencer_db_id})
-
+    outreach = await get_outreach_history(influencer_db_id)
     return {**row, "outreach_history": outreach}
 
 
@@ -132,10 +118,7 @@ async def score_influencers(req: ScoreRequest):
 @router.post("/outreach/send", summary="Send outreach message to influencer")
 async def send_outreach(req: OutreachRequest):
     # 向指定达人发送招募消息（自定义话术或 AI 生成），并记录发送结果。
-    inf_row = await fetchone(
-        "SELECT * FROM influencers WHERE id = :id",
-        {"id": req.influencer_db_id},
-    )
+    inf_row = await get_influencer_by_id(req.influencer_db_id)
     if not inf_row:
         raise HTTPException(status_code=404, detail="Influencer not found")
 
@@ -167,15 +150,9 @@ async def send_outreach(req: OutreachRequest):
 
     # 记录
     try:
-        await execute("""
-            INSERT INTO outreach_records (influencer_id, channel, message, sent_at, replied)
-            VALUES (:inf_id, :channel, :msg, NOW(), 0)
-        """, {"inf_id": req.influencer_db_id, "channel": req.channel, "msg": message[:3000]})
+        await insert_outreach_record(req.influencer_db_id, req.channel, message)
         if sent:
-            await execute(
-                "UPDATE influencers SET status = 'contacted', updated_at = NOW() WHERE id = :id",
-                {"id": req.influencer_db_id},
-            )
+            await set_influencer_contacted(req.influencer_db_id)
     except Exception as e:
         logger.error(f"保存招募记录失败: {e}")
 
@@ -185,19 +162,11 @@ async def send_outreach(req: OutreachRequest):
 @router.patch("/outreach/{record_id}/reply", summary="Mark influencer reply")
 async def mark_replied(record_id: int, reply_content: str = ""):
     # 将指定招募记录标记为已回复，并将达人状态更新为 negotiating。
-    await execute("""
-        UPDATE outreach_records
-        SET replied = 1, reply_content = :content, replied_at = NOW()
-        WHERE id = :id
-    """, {"id": record_id, "content": reply_content[:3000]})
+    await mark_outreach_replied(record_id, reply_content)
 
-    # 更新达人状态为 negotiating
-    row = await fetchone("SELECT influencer_id FROM outreach_records WHERE id = :id", {"id": record_id})
+    row = await get_outreach_record_influencer_id(record_id)
     if row:
-        await execute(
-            "UPDATE influencers SET status = 'negotiating', updated_at = NOW() WHERE id = :id",
-            {"id": row["influencer_id"]},
-        )
+        await update_influencer_status(row["influencer_id"], "negotiating")
     return {"success": True}
 
 
@@ -210,10 +179,7 @@ async def update_status(
     valid_statuses = {"discovered", "contacted", "negotiating", "signed"}
     if status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status, allowed: {valid_statuses}")
-    await execute(
-        "UPDATE influencers SET status = :status, updated_at = NOW() WHERE id = :id",
-        {"status": status, "id": influencer_db_id},
-    )
+    await update_influencer_status(influencer_db_id, status)
     return {"success": True, "new_status": status}
 
 
@@ -223,24 +189,8 @@ async def get_pipeline(
     days: int = Query(7),
 ):
     # 统计各招募阶段达人数量及外发消息的回复率，可按平台过滤。
-    params: dict = {"days": days}
-    platform_clause = ""
-    if platform:
-        platform_clause = "AND platform = :platform"
-        params["platform"] = platform
-
-    status_rows = await fetchall(f"""
-        SELECT status, COUNT(*) as count
-        FROM influencers
-        WHERE updated_at >= DATE_SUB(NOW(), INTERVAL :days DAY) {platform_clause}
-        GROUP BY status
-    """, params)
-
-    outreach_row = await fetchone("""
-        SELECT COUNT(*) as sent, SUM(replied) as replied
-        FROM outreach_records
-        WHERE sent_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
-    """, {"days": days})
+    status_rows = await get_pipeline_status_counts(days=days, platform=platform)
+    outreach_row = await get_outreach_summary(days=days)
 
     return {
         "pipeline":          {r["status"]: r["count"] for r in status_rows},
@@ -251,11 +201,11 @@ async def get_pipeline(
 
 @router.get("/search-live", summary="Live influencer search (no DB write)")
 async def search_live(
-    platform:     str = Query("tiktok"),
-    keyword:      str = Query(""),
-    category:     str = Query(""),
+    platform:      str = Query("tiktok"),
+    keyword:       str = Query(""),
+    category:      str = Query(""),
     min_followers: int = Query(10000),
-    limit:        int = Query(20),
+    limit:         int = Query(20),
 ):
     # 实时调用爬虫搜索达人并返回评分结果，不写入数据库。
     if platform == "tiktok":
@@ -276,40 +226,18 @@ async def search_live(
 
 
 @router.get("/outreach-records", summary="View outreach message records")
-async def get_outreach_records(
-    replied:   Optional[int] = Query(None, description="0=unreplied, 1=replied"),
-    channel:   Optional[str] = Query(None),
-    limit:     int = Query(30),
+async def get_outreach_records_route(
+    replied:  Optional[int] = Query(None, description="0=unreplied, 1=replied"),
+    channel:  Optional[str] = Query(None),
+    limit:    int = Query(30),
 ):
     # 查询招募消息发送记录，支持按回复状态和渠道过滤。
-    conditions = []
-    params: dict = {"limit": limit}
-
-    if replied is not None:
-        conditions.append("r.replied = :replied")
-        params["replied"] = replied
-    if channel:
-        conditions.append("r.channel = :channel")
-        params["channel"] = channel
-
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    rows  = await fetchall(f"""
-        SELECT r.id, r.channel, r.message, r.sent_at, r.replied,
-               r.reply_content, r.replied_at,
-               i.username, i.platform, i.followers, i.ai_score
-        FROM outreach_records r
-        JOIN influencers i ON i.id = r.influencer_id
-        {where}
-        ORDER BY r.sent_at DESC LIMIT :limit
-    """, params)
+    rows = await get_outreach_records(limit=limit, replied=replied, channel=channel)
     return {"count": len(rows), "data": rows}
 
 
 @router.get("/task-logs", summary="View scheduled task logs")
 async def task_logs(limit: int = 20):
     # 查询 Phase 2 定时任务执行历史，按时间倒序排列。
-    rows = await fetchall(
-        "SELECT * FROM task_logs WHERE phase = 'phase2' ORDER BY started_at DESC LIMIT :limit",
-        {"limit": limit},
-    )
+    rows = await get_task_logs(limit=limit)
     return {"count": len(rows), "data": rows}

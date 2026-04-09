@@ -6,6 +6,7 @@ from datetime import datetime
 
 import httpx
 
+from core.config import settings
 from core.logger import logger
 from core.tiktok_client import TikTokSigner
 

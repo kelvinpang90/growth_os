@@ -8,13 +8,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from core.config import settings
-from core.database import execute, fetchone
 from core.i18n import t
+from core.auth.repositories.user_repository import (
+    create_user,
+    delete_refresh_token,
+    get_password_hash,
+    get_refresh_token,
+    get_user_by_email,
+    get_user_by_email_or_username,
+    get_user_full,
+    get_user_simple,
+    save_refresh_token,
+    update_user,
+)
 from core.auth.schemas import (
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateUserRequest,
     UserResponse,
 )
 from core.auth.security import (
@@ -36,41 +48,26 @@ _bearer = HTTPBearer()
              summary="Register")
 async def register(req: RegisterRequest):
     # 创建新用户账号，注册成功后直接颁发 access/refresh token。
-    existing = await fetchone(
-        "SELECT id FROM users WHERE email = :email OR username = :username",
-        {"email": req.email, "username": req.username},
-    )
+    existing = await get_user_by_email_or_username(req.email, req.username)
     if existing:
         raise HTTPException(status_code=400, detail=t("error.user_exists"))
 
-    await execute(
-        """
-        INSERT INTO users (username, email, password_hash, platform, language, currency)
-        VALUES (:username, :email, :password_hash, :platform, :language, :currency)
-        """,
-        {
-            "username": req.username,
-            "email": req.email,
-            "password_hash": hash_password(req.password),
-            "platform": req.platform.value,
-            "language": req.language.value,
-            "currency": req.currency.value,
-        },
+    await create_user(
+        username=req.username,
+        email=req.email,
+        password_hash=hash_password(req.password),
+        platform=req.platform.value,
+        language=req.language.value,
+        currency=req.currency.value,
     )
-    user = await fetchone(
-        "SELECT id, username, language FROM users WHERE email = :email",
-        {"email": req.email},
-    )
+    user = await get_user_simple(req.email)
     return await _issue_tokens(user["id"], user["username"], user["language"])
 
 
 @router.post("/login", response_model=TokenResponse, summary="Login")
 async def login(req: LoginRequest):
     # 验证邮箱和密码，通过后颁发 access/refresh token。
-    user = await fetchone(
-        "SELECT id, username, password_hash, language FROM users WHERE email = :email AND is_active = 1",
-        {"email": req.email},
-    )
+    user = await get_user_by_email(req.email)
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail=t("error.wrong_credentials"))
 
@@ -81,27 +78,16 @@ async def login(req: LoginRequest):
 async def refresh(req: RefreshRequest):
     # 使用有效的 refresh token 换取新的 access/refresh token（token 轮换）。
     token_hash = hash_refresh_token(req.refresh_token)
-    record = await fetchone(
-        """
-        SELECT rt.user_id, rt.expires_at, u.username, u.language
-        FROM refresh_tokens rt
-        JOIN users u ON u.id = rt.user_id
-        WHERE rt.token_hash = :token_hash AND u.is_active = 1
-        """,
-        {"token_hash": token_hash},
-    )
+    record = await get_refresh_token(token_hash)
     if not record:
         raise HTTPException(status_code=401, detail=t("error.refresh_token_invalid"))
 
     if record["expires_at"] < datetime.now():
-        await execute(
-            "DELETE FROM refresh_tokens WHERE token_hash = :h",
-            {"h": token_hash},
-        )
+        await delete_refresh_token(token_hash)
         raise HTTPException(status_code=401, detail=t("error.refresh_token_expired"))
 
     # Token 轮换：删旧换新
-    await execute("DELETE FROM refresh_tokens WHERE token_hash = :h", {"h": token_hash})
+    await delete_refresh_token(token_hash)
     return await _issue_tokens(record["user_id"], record["username"], record["language"])
 
 
@@ -120,6 +106,36 @@ async def me(credentials: HTTPAuthorizationCredentials = Depends(_bearer)):
     )
 
 
+@router.patch("/me", response_model=UserResponse, summary="Update Current User")
+async def update_me(
+    req: UpdateUserRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    # 修改当前用户的密码、语言或货币设置。
+    user = await get_current_user(credentials.credentials)
+
+    if req.new_password:
+        if not req.current_password:
+            raise HTTPException(status_code=400, detail=t("error.current_password_required"))
+        row = await get_password_hash(user["id"])
+        if not verify_password(req.current_password, row["password_hash"]):
+            raise HTTPException(status_code=400, detail=t("error.wrong_current_password"))
+
+    updates: dict = {}
+    if req.new_password:
+        updates["password_hash"] = hash_password(req.new_password)
+    if req.language is not None:
+        updates["language"] = req.language.value
+    if req.currency is not None:
+        updates["currency"] = req.currency.value
+
+    if updates:
+        await update_user(user["id"], updates)
+
+    updated = await get_user_full(user["id"])
+    return UserResponse(**{**dict(updated), "created_at": str(updated["created_at"])})
+
+
 # ── 可复用的认证依赖 ──────────────────────────────────────────────────────
 
 async def get_current_user(token: str) -> dict:
@@ -134,11 +150,7 @@ async def get_current_user(token: str) -> dict:
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail=t("error.token_type_error"))
 
-    user = await fetchone(
-        "SELECT id, username, email, platform, language, currency, created_at "
-        "FROM users WHERE id = :id AND is_active = 1",
-        {"id": int(payload["sub"])},
-    )
+    user = await get_user_full(int(payload["sub"]))
     if not user:
         raise HTTPException(status_code=401, detail=t("error.user_not_found"))
     return user
@@ -159,13 +171,7 @@ async def _issue_tokens(user_id: int, username: str, language: str = "en") -> To
     raw_refresh, refresh_hash = create_refresh_token()
     expires_at = datetime.now() + timedelta(days=settings.auth.refresh_token_expire_days)
 
-    await execute(
-        """
-        INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-        VALUES (:user_id, :token_hash, :expires_at)
-        """,
-        {"user_id": user_id, "token_hash": refresh_hash, "expires_at": expires_at},
-    )
+    await save_refresh_token(user_id, refresh_hash, expires_at)
     return TokenResponse(
         access_token=access_token,
         refresh_token=raw_refresh,

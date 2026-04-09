@@ -8,13 +8,16 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 
 from core.base_agent import _load_config
-from core.database import fetchall, fetchone
 from core.i18n import t
-from core.logger import logger
 from phase1_product_discovery.agents.discovery_agent import DiscoveryAgent
 from phase1_product_discovery.analyzers.product_scorer import estimate_profit
 from phase1_product_discovery.crawlers.tiktok_crawler        import TikTokCrawler
 from phase1_product_discovery.crawlers.google_trends_crawler import GoogleTrendsCrawler
+from phase1_product_discovery.repositories.product_repository import (
+    get_recommendations,
+    get_trending_keywords,
+    get_task_logs,
+)
 
 router = APIRouter(prefix="/api/phase1", tags=["Phase1 — Product Discovery"])
 
@@ -37,52 +40,30 @@ async def run_discovery(category: str = "", platforms: str = "tiktok,amazon,shop
 
 
 @router.get("/recommendations", summary="Get AI-recommended product list")
-async def get_recommendations(
+async def get_recommendations_route(
     days:      int   = Query(1, ge=1, le=90, description="Look-back window in days"),
     platform:  Optional[str] = Query(None),
     min_score: float = Query(65.0, ge=0, le=100),
     limit:     int   = Query(20, ge=1, le=200),
 ):
     # 查询数据库中 AI 评分满足阈值的推荐商品，支持按平台和时间窗口过滤。
-    # 平台参数白名单校验，完全杜绝 SQL 注入风险
     if platform and platform not in _VALID_PLATFORMS_DISCOVERY:
         raise HTTPException(
             status_code=400,
             detail=t("error.invalid_platform", platforms=sorted(_VALID_PLATFORMS_DISCOVERY)),
         )
 
-    params: dict = {"min_score": min_score, "days": days, "limit": limit}
-
-    if platform:
-        params["platform"] = platform
-        rows = await fetchall("""
-            SELECT id, platform, product_id, title, category, price, sales_volume,
-                   gmv_estimate, rating, review_count, trend_score, profit_rate,
-                   competition, ai_score, ai_analysis, discovered_at
-            FROM discovered_products
-            WHERE ai_score >= :min_score
-              AND discovered_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
-              AND platform = :platform
-            ORDER BY ai_score DESC
-            LIMIT :limit
-        """, params)
-    else:
-        rows = await fetchall("""
-            SELECT id, platform, product_id, title, category, price, sales_volume,
-                   gmv_estimate, rating, review_count, trend_score, profit_rate,
-                   competition, ai_score, ai_analysis, discovered_at
-            FROM discovered_products
-            WHERE ai_score >= :min_score
-              AND discovered_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
-            ORDER BY ai_score DESC
-            LIMIT :limit
-        """, params)
-
+    rows = await get_recommendations(
+        min_score=min_score,
+        days=days,
+        limit=limit,
+        platform=platform,
+    )
     return {"count": len(rows), "data": rows}
 
 
 @router.get("/trending-keywords", summary="Get trending keywords")
-async def get_trending_keywords(
+async def get_trending_keywords_route(
     platform: Optional[str] = Query(None),
     limit:    int = Query(30, ge=1, le=200),
 ):
@@ -93,19 +74,7 @@ async def get_trending_keywords(
             detail=t("error.invalid_platform", platforms=sorted(_VALID_PLATFORMS_DISCOVERY)),
         )
 
-    params: dict = {"limit": limit}
-    if platform:
-        params["platform"] = platform
-        rows = await fetchall(
-            "SELECT * FROM trending_keywords WHERE platform = :platform "
-            "ORDER BY captured_at DESC LIMIT :limit",
-            params,
-        )
-    else:
-        rows = await fetchall(
-            "SELECT * FROM trending_keywords ORDER BY captured_at DESC LIMIT :limit",
-            params,
-        )
+    rows = await get_trending_keywords(limit=limit, platform=platform)
     return {"count": len(rows), "data": rows}
 
 
@@ -161,10 +130,7 @@ async def google_trends_interest(
 
 
 @router.get("/task-logs", summary="View scheduled task logs")
-async def task_logs(phase: str = "phase1", limit: int = Query(20, ge=1, le=100)):
+async def task_logs_route(phase: str = "phase1", limit: int = Query(20, ge=1, le=100)):
     # 查询定时任务执行历史记录，按 phase 和时间倒序排列。
-    rows = await fetchall(
-        "SELECT * FROM task_logs WHERE phase = :phase ORDER BY started_at DESC LIMIT :limit",
-        {"phase": phase, "limit": limit},
-    )
+    rows = await get_task_logs(phase=phase, limit=limit)
     return {"count": len(rows), "data": rows}

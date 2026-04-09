@@ -14,7 +14,8 @@
       "Bash(mkdir -p backend)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
-      "Bash(npm create:*)"
+      "Bash(npm create:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

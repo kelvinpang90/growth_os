@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
@@ -52,3 +53,10 @@ class UserResponse(BaseModel):
     language: str
     currency: str
     created_at: str
+
+
+class UpdateUserRequest(BaseModel):
+    current_password: Optional[str] = None
+    new_password:     Optional[str] = None
+    language:         Optional[Language] = None
+    currency:         Optional[Currency] = None

@@ -10,14 +10,14 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/phase1',
-      name: 'phase1',
-      component: () => import('@/views/Phase1View.vue'),
-    },
-    {
       path: '/phase2',
       name: 'phase2',
       component: () => import('@/views/Phase2View.vue'),
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/ProfileView.vue'),
     },
     {
       path: '/login',
@@ -25,6 +25,19 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
     },
   ],
+})
+
+// 不需要登录的公开路由
+const PUBLIC_ROUTES = ['/login', '/register']
+
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem('access_token')
+  if (!PUBLIC_ROUTES.includes(to.path) && !token) {
+    // 未登录，跳转到登录页，并记录原始目标路径
+    next({ path: '/login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router

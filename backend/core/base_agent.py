@@ -55,7 +55,9 @@ class BaseAgent(ABC):
     """Abstract base class for all AI agents. Subclasses must implement system_prompt, tools, and dispatch_tool."""
 
     def __init__(self):
-        self._client = anthropic.Anthropic(api_key=settings.anthropic.api_key)
+        # api_key=None 时 SDK 自动读取 ANTHROPIC_API_KEY 环境变量；
+        # 传 "" 空字符串会直接报 TypeError，所以用 or None 做保险
+        self._client = anthropic.Anthropic(api_key=settings.anthropic.api_key or None)
         self._history: list[dict] = []
 
     # ── 子类必须实现 ──────────────────────────────────────────────────────

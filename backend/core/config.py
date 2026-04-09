@@ -3,9 +3,11 @@ Global configuration — reads from environment variables, supports .env file
 """
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# 固定路径，无论从哪个目录启动都能正确找到 backend/.env
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 def _env(key: str, default: str = "") -> str:
@@ -32,7 +34,8 @@ class RedisConfig:
 
 @dataclass
 class AnthropicConfig:
-    api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
+    # 直接用 os.getenv（返回 None 而不是 ""），避免传空字符串给 SDK 导致认证失败
+    api_key: str | None = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     model: str = field(default_factory=lambda: _env("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
     max_tokens: int = 4096
 
